@@ -1,0 +1,99 @@
+# Node.js
+/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json # 通常建议提交 package-lock.json 以保证依赖一致性，但如果团队成员使用不同包管理器或有特定策略，可以忽略
+# yarn.lock # 同上，如果使用yarn
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# IDE / Editor specific files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sublime-project
+*.sublime-workspace
+
+# Log files and temporary data
+/logs/
+# 你可以根据需要决定是否忽略 chat_history，如果它包含敏感对话或只是临时测试，则忽略
+/chat_history/ 
+# send.json and received.json are useful for debugging, but might contain sensitive info from user's AI.
+# If you want to keep the repo clean or avoid committing potentially private data from your tests, ignore them.
+# Otherwise, if they are example/template files, commit them.
+# send.json
+# received.json
+# conformchat.txt
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Python Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Playwright-specific (downloaded browsers)
+# Playwright typically downloads browsers outside the project directory,
+# but if for some reason they end up inside, these might be useful.
+# However, the primary browser cache is usually global.
+# playwright-browsers/
+
+# Specific to your project structure / potentially sensitive user data
+# If USER_DATA_DIRECTORY_PATH in google_search_plugin.py points to a path *inside* the project
+# (which is NOT recommended), you would ignore that specific path.
+# But generally, user data directories are outside the project.
+
+# Example of ignoring a specific user data path if it were inside (NOT typical)
+# /my_browser_profile_for_google_search/
+
+# Windows batch specific (if any temporary files are created by them)
+# *.tmp
+
+# Compiled Python files (less common now but good to have)
+*.pyc
+*.pyd
+
+# Environment variables file
+.env
+
+# Output files from tests or builds (if any)
+coverage.xml
+.coverage
+htmlcov/
