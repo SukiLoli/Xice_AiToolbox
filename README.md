@@ -73,7 +73,7 @@
 
 ## 系统架构图（给开发者）
 
-```mermaid
+```
 sequenceDiagram
     participant AI_App as AI应用 (例如聊天客户端)
     participant XiceTB as Xice_Aitoolbox (localhost:proxy_server_port)
