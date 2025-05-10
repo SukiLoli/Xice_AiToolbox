@@ -103,7 +103,7 @@ sequenceDiagram
         XiceTB->>XiceTB: 13b. 构建新请求 (原对话历史 + AI回复 + 插件结果作为 'user' 消息)
         XiceTB-)LocalProxy: 14b. 再次请求AI (返回步骤4)
     end
-
+```
 谁适合使用？
 
 AI应用普通用户：希望你的AI助手能上网查资料、看懂网页、帮你搜索。
