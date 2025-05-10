@@ -12,12 +12,12 @@
   "max_continuation_depth": 20,
   "conform_chat_display_mode": "detailed_plugin_responses",
   "project_generator_allowed_base_paths_map": {
-    "user_desktop_projects": "C:/Users/bin/Desktop/AiGeneratedProjects",
-    "default_generated_projects_key": "./generated_projects_default"
+    "my_ai_projects": "./AiGeneratedProjects",
+    "default_projects": "./generated_projects_default"
   },
   "file_operations_allowed_base_paths": [
-    "C:/Users/bin/Desktop/AiGeneratedProjects",
+    "./AiGeneratedProjects",
     "./generated_projects_default",
-    "C:/Users/bin/Desktop/AiManagedFiles"
+    "./AiManagedFiles"
   ]
 }
