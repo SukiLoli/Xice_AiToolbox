@@ -1,0 +1,23 @@
+{
+  "proxy_server_port": 3001,
+  "target_proxy_url": "http://localhost:3000",
+  "log_intercepted_data": true,
+  "show_node_output_in_python": true,
+  "log_response_body_in_received_file": true,
+  "max_log_response_size_kb_in_received_file": 1024,
+  "max_plugin_recursion_depth": 20,
+  "inject_plugin_rules_on_first_request": true,
+  "code_sandbox_python_timeout": 15,
+  "program_runner_timeout": 30,
+  "max_continuation_depth": 20,
+  "conform_chat_display_mode": "detailed_plugin_responses",
+  "project_generator_allowed_base_paths_map": {
+    "user_desktop_projects": "C:/Users/bin/Desktop/AiGeneratedProjects",
+    "default_generated_projects_key": "./generated_projects_default"
+  },
+  "file_operations_allowed_base_paths": [
+    "C:/Users/bin/Desktop/AiGeneratedProjects",
+    "./generated_projects_default",
+    "C:/Users/bin/Desktop/AiManagedFiles"
+  ]
+}

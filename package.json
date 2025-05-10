@@ -1,0 +1,24 @@
+{
+  "name": "xice-aitoolbox",
+  "version": "0.1.0",
+  "description": "AI Toolbox for intercepting and logging requests.",
+  "main": "proxy_server.js",
+  "scripts": {
+    "start": "node proxy_server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ai",
+    "toolbox",
+    "proxy",
+    "interception"
+  ],
+  "author": "YourName",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "fs-extra": "^11.2.0",
+    "morgan": "^1.10.0",
+    "node-fetch": "^2.7.0"
+  }
+}

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xice_Aitoolbox - 插件与系统配置</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        h1, h2 { color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px;}
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #4CAF50; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .actions button { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: none; border-radius: 4px; }
+        .edit-btn { background-color: #ffc107; color: white; }
+        .delete-btn { background-color: #f44336; color: white; }
+        .save-btn { background-color: #4CAF50; color: white; padding: 10px 15px; display: block; margin-top: 10px;}
+        .form-section, .global-config-section { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; }
+        .form-section label, .global-config-section label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-section input[type="text"], .form-section textarea, .form-section select,
+        .global-config-section input[type="text"], .global-config-section input[type="number"], 
+        .global-config-section textarea, .global-config-section select {
+            width: calc(100% - 22px); /* Adjusted for padding and border */
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; /* Ensures padding and border don't increase width */
+        }
+        .form-section input[type="checkbox"], .global-config-section input[type="checkbox"] { 
+            margin-right: 5px; vertical-align: middle; width: auto; /* Override previous width */
+        }
+        .form-section .checkbox-label, .global-config-section .checkbox-label { 
+            font-weight: normal; display: inline; /* Align checkbox and label nicely */ 
+        }
+        .button-group { margin-top: 15px; }
+        .button-group button { padding: 10px 15px; cursor: pointer; border: none; border-radius: 4px; margin-right: 10px;}
+        .submit-btn { background-color: #007bff; color: white; }
+        .cancel-btn { background-color: #6c757d; color: white; }
+        #status-message, #global-status-message { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;}
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;}
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;}
+        .disabled-row { background-color: #eeeeee !important; color: #999999; }
+        .disabled-row td { text-decoration: line-through; }
+        .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .config-item { display: flex; flex-direction: column; }
+        .config-item small { font-size: 0.8em; color: #666; margin-top: -5px; margin-bottom: 5px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Xice_Aitoolbox - 插件与系统配置</h1>
+        <div id="status-message"></div>
+
+        <h2>当前插件列表</h2>
+        <table id="plugins-table">
+            <thead>
+                <tr>
+                    <th>启用?</th>
+                    <th>ID</th>
+                    <th>中文名称</th>
+                    <th>可执行路径/脚本名</th>
+                    <th>Python脚本?</th>
+                    <th>接收参数?</th>
+                    <th>内部信号?</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 插件行将由JS动态填充 -->
+            </tbody>
+        </table>
+        <button id="save-all-plugins" class="save-btn" style="display: none;">保存所有插件更改到 PluginsRule.json</button>
+
+        <h2>添加/编辑插件</h2>
+        <div class="form-section">
+            <input type="hidden" id="plugin-index" value="-1">
+            <div>
+                <input type="checkbox" id="plugin-enabled" checked>
+                <label for="plugin-enabled" class="checkbox-label">启用此插件</label>
+            </div>
+            <div>
+                <label for="plugin-id">插件ID (唯一, 英文/数字/下划线):</label>
+                <input type="text" id="plugin-id" required>
+            </div>
+            <div>
+                <label for="plugin-name-cn">插件中文名称:</label>
+                <input type="text" id="plugin-name-cn" required>
+            </div>
+            <div>
+                <label for="rule-description">规则描述 (给AI的提示):</label>
+                <textarea id="rule-description" rows="3" required></textarea>
+            </div>
+            <div>
+                <label for="placeholder-start">起始占位符 (例如: [获取时间]):</label>
+                <input type="text" id="placeholder-start" required>
+            </div>
+            <div>
+                <label for="placeholder-end">结束占位符 (例如: [/获取时间]):</label>
+                <input type="text" id="placeholder-end" required>
+            </div>
+            <div>
+                <label for="executable-path">可执行路径/脚本名 (例如: time_plugin.py 或 C:/path/to/app.exe):</label>
+                <input type="text" id="executable-path" required>
+            </div>
+            <div>
+                <input type="checkbox" id="is-python-script">
+                <label for="is-python-script" class="checkbox-label">这是一个Python脚本 (勾选则用 'python' 命令执行)</label>
+            </div>
+            <div>
+                <input type="checkbox" id="accepts-parameters">
+                <label for="accepts-parameters" class="checkbox-label">此插件接收占位符之间的参数</label>
+            </div>
+            <div>
+                <input type="checkbox" id="is-internal-signal">
+                <label for="is-internal-signal" class="checkbox-label">这是一个内部信号插件 (例如: 继续回复)</label>
+            </div>
+            <div class="button-group">
+                <button id="submit-plugin-form" class="submit-btn">添加插件</button>
+                <button id="cancel-edit-plugin" class="cancel-btn" style="display:none;">取消编辑</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>全局系统配置</h2>
+        <div id="global-status-message"></div>
+        <div class="global-config-section">
+            <div class="config-grid">
+                <div class="config-item">
+                    <label for="config-proxy-server-port">代理服务端口:</label>
+                    <input type="number" id="config-proxy-server-port">
+                    <small>Node.js服务监听的端口。修改后需重启服务。</small>
+                </div>
+                <div class="config-item">
+                    <label for="config-target-proxy-url">目标转发URL:</label>
+                    <input type="text" id="config-target-proxy-url">
+                    <small>请求最终转发到的地址。修改后需重启服务。</small>
+                </div>
+                <div class="config-item">
+                    <label for="config-max-log-response-size-kb">最大日志响应体大小 (KB):</label>
+                    <input type="number" id="config-max-log-response-size-kb">
+                </div>
+                <div class="config-item">
+                    <label for="config-max-plugin-recursion-depth">最大插件递归深度:</label>
+                    <input type="number" id="config-max-plugin-recursion-depth">
+                </div>
+                <div class="config-item">
+                    <label for="config-code-sandbox-python-timeout">Python沙盒超时 (秒):</label>
+                    <input type="number" id="config-code-sandbox-python-timeout">
+                    <small>影响Python插件。修改后需重启服务使插件生效。</small>
+                </div>
+                <div class="config-item">
+                    <label for="config-program-runner-timeout">程序运行器超时 (秒):</label>
+                    <input type="number" id="config-program-runner-timeout">
+                    <small>影响Python插件。修改后需重启服务使插件生效。</small>
+                </div>
+                <div class="config-item">
+                    <label for="config-max-continuation-depth">最大继续回复深度:</label>
+                    <input type="number" id="config-max-continuation-depth">
+                </div>
+                <div class="config-item">
+                    <label for="config-conform-chat-display-mode">ConformChat显示模式:</label>
+                    <select id="config-conform-chat-display-mode">
+                        <option value="detailed_plugin_responses">模式1: 详细插件响应</option>
+                        <option value="compact_plugin_chain">模式2: 紧凑插件链</option>
+                        <option value="final_ai_response_only">模式3: 仅最终AI响应</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <input type="checkbox" id="config-log-intercepted-data">
+                <label for="config-log-intercepted-data" class="checkbox-label">记录拦截数据 (send.json, received.json)</label>
+            </div>
+            <div>
+                <input type="checkbox" id="config-show-node-output-in-python">
+                <label for="config-show-node-output-in-python" class="checkbox-label">在Python控制台显示Node.js日志 <small>(需重启服务生效)</small></label>
+            </div>
+            <div>
+                <input type="checkbox" id="config-log-response-body-in-received-file">
+                <label for="config-log-response-body-in-received-file" class="checkbox-label">在received.json中记录响应体</label>
+            </div>
+            <div>
+                <input type="checkbox" id="config-inject-plugin-rules-on-first-request">
+                <label for="config-inject-plugin-rules-on-first-request" class="checkbox-label">首次请求时注入插件规则给AI</label>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <label for="config-project-generator-allowed-base-paths-map">项目生成器允许的基础路径映射 (JSON):</label>
+                <small>给AI的键名与实际路径的映射。影响Python插件，修改后需重启服务使插件生效。</small>
+                <textarea id="config-project-generator-allowed-base-paths-map" rows="4"></textarea>
+            </div>
+            <div>
+                <label for="config-file-operations-allowed-base-paths">文件操作允许的基础路径列表 (JSON数组):</label>
+                <small>AI可操作的目录列表。影响Python插件，修改后需重启服务使插件生效。</small>
+                <textarea id="config-file-operations-allowed-base-paths" rows="4"></textarea>
+            </div>
+            
+            <button id="save-global-config" class="save-btn">保存全局配置到 config.json</button>
+            <small style="display:block; margin-top:5px; color: #888;">注意：部分配置 (如端口、目标URL、影响Python插件的配置) 修改后需要重启 Xice_Aitoolbox 服务 (start.bat) 才能完全生效。</small>
+        </div>
+    </div>
+
+    <script src="plugin_manager.js"></script>
+</body>
+</html>
