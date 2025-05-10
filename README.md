@@ -18,7 +18,7 @@ Xice_Aitoolbox 是一个强大的、开源的本地中间层框架，它拦截AI
     *   [前提条件：你需要准备什么？](#前提条件你需要准备什么)
     *   [第一步：获取框架代码](#第一步获取框架代码)
     *   [第二步：安装框架核心依赖 (Node.js & Python)](#第二步安装框架核心依赖-nodejs--python)
-    *   [第三步：关键配置：连接你的AI环境](#第三步关键配置连接你的ai环境)
+    *   [第三步：关键配置：连接与授权 (`config.json`)](#第三步关键配置连接与授权-configjson)
     *   [第四步：配置你的AI应用以使用本框架](#第四步配置你的ai应用以使用本框架)
 6.  [运行与管理你的工具箱](#运行与管理你的工具箱)
 7.  [插件系统：框架的灵魂](#插件系统框架的灵魂)
@@ -56,6 +56,7 @@ Xice_Aitoolbox的核心价值在于它提供了一个**中间层**，这个中�
 *   **AI规则动态注入**：自动向AI的对话中提示当前已启用的插件及其使用方法。
 *   **对话聚合 (`conformchat.txt`)**: 将多轮插件调用和AI回复聚合成连贯的最终输出，支持多种显示模式。
 *   **跨平台兼容**：基于Python和Node.js，可在Windows, macOS, Linux上运行。
+*   **可配置的文件系统访问**：通过`config.json`控制AI插件可操作的文件和项目路径。
 
 ## 它是如何工作的？(框架流程)
 
@@ -69,7 +70,7 @@ Xice_Aitoolbox的核心价值在于它提供了一个**中间层**，这个中�
     *   **如果找到插件调用**：
         *   框架提取指令和参数。
         *   调用相应的插件脚本/程序（例如，一个Python脚本）。
-        *   插件执行任务（如访问API、读写文件、运行命令等）。
+        *   插件执行任务（如访问API、读写**已授权路径下**的文件、运行命令等）。
         *   插件将其结果输出给框架。
         *   框架将AI的原始回复（占位符之前的部分）和插件的结果（根据显示模式格式化）添加到`conformchat.txt`中，并构建一个新的请求，将这些信息作为上下文再次发送给AI模型（返回步骤4），让AI基于新信息继续对话。
     *   **如果未找到插件调用 (或插件链结束)**：
@@ -120,7 +121,7 @@ AI爱好者与高级用户：希望赋予本地AI超出聊天框的能力，实�
 快速开始：部署你的工具箱框架
 前提条件：你需要准备什么？
 
-确保你的电脑已安装以下软件（安装方法详见上一版README或网上教程）：
+确保你的电脑已安装以下软件（安装方法详见网上教程）：
 
 Node.js (版本 18.x 或 20.x+ 推荐) - 用于运行框架的核心服务。
 
@@ -157,21 +158,87 @@ IGNORE_WHEN_COPYING_END
 
 没有这个，任何依赖浏览器的插件（如网页读取、谷歌搜索）都无法工作。
 
-第三步：关键配置：连接你的AI环境
+第三步：关键配置：连接与授权 (config.json)
 
-编辑项目根目录下的 config.json 文件：
+编辑项目根目录下的 config.json 文件，这是框架的“控制面板”。
 
-target_proxy_url (必需): 设置为你本地AI服务（或反向代理）的URL。例如 "http://localhost:3000"。这是框架将AI请求最终转发到的地方。
+target_proxy_url (必需):
 
-proxy_server_port (可选): 框架自身监听的端口，默认为 3001。
+作用：告诉框架将AI的请求最终转发到哪里。这通常是您本地运行的AI服务（如Ollama、LM Studio暴露的API地址）或您配置的本地AI反向代理服务的URL。
 
-其他配置项详见文件内注释或后续章节。
+示例：如果您的本地AI服务在 http://localhost:11434，则配置为 "target_proxy_url": "http://localhost:11434"。
+
+新手提示：如果您不确定，请检查您AI应用或反代工具的设置。
+
+proxy_server_port:
+
+作用：Xice_Aitoolbox框架自身监听的端口号。您的AI应用需要将请求发送到这个端口。
+
+默认值：3001。通常无需修改，除非此端口已被占用。
+
+文件与项目路径授权 (重要！):
+
+背景：为了安全，部分插件（如生成项目、更新文件、删除文件）默认只能在特定目录下工作。您需要通过 config.json 来“授权”这些目录。
+
+project_generator_allowed_base_paths_map:
+
+作用：定义AI在调用“生成项目框架”插件时，可以使用的“快捷名称”与实际系统路径的映射。
+
+默认示例：
+
+"project_generator_allowed_base_paths_map": {
+  "my_ai_projects": "./AiGeneratedProjects", 
+  "default_projects": "./generated_projects_default"
+}
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Json
+IGNORE_WHEN_COPYING_END
+
+这意味着，如果AI说“使用my_ai_projects作为基础路径生成一个项目”，框架会将其定位到项目根目录下的 AiGeneratedProjects 文件夹。
+
+自定义：您可以修改这些相对路径（./代表项目根目录），或者添加新的条目指向您系统上的其他绝对路径，例如：
+"my_docs_projects": "C:/Users/YourName/Documents/AiProjects" (Windows) 或
+"my_docs_projects": "/Users/YourName/Documents/AiProjects" (macOS/Linux)。
+然后，您可以告诉AI使用您定义的“快捷名称”（如my_docs_projects）。
+
+file_operations_allowed_base_paths:
+
+作用：一个列表，定义了“更新文件内容”和“删除文件”等插件被授权操作的基础目录。AI只能在这些目录及其子目录中进行文件操作。
+
+默认示例：
+
+"file_operations_allowed_base_paths": [
+  "./AiGeneratedProjects",    
+  "./generated_projects_default",
+  "./AiManagedFiles"        
+]
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Json
+IGNORE_WHEN_COPYING_END
+
+这些路径同样是相对于项目根目录的。
+
+自定义：您可以修改它们，或添加您希望AI能够管理的绝对路径。
+
+安全提示：请谨慎配置这些路径！确保只授予AI访问您期望它能访问的目录的权限。避免授予对系统根目录或包含敏感文件的目录的访问权限。 详见安全考量章节。
+
+建议：为了方便初次使用，您可以在项目根目录下手动创建 AiGeneratedProjects, generated_projects_default, AiManagedFiles 这几个文件夹。
+
+其他配置项：
+
+config.json中还有许多其他控制日志记录、插件行为超时的选项。您可以暂时使用默认值，或参考文件内的注释（如果提供）以及后续的Web管理界面进行调整。
 
 第四步：配置你的AI应用以使用本框架
 
 修改你的AI聊天客户端（或其他AI应用）的API设置，将其API基地址 (Base URL) 指向Xice_Aitoolbox框架的监听地址。
 
-例如：如果proxy_server_port是3001，则AI应用的API基地址应设为 http://localhost:3001。
+例如：如果proxy_server_port是3001（默认值），则AI应用的API基地址应设为 http://localhost:3001。
 
 运行与管理你的工具箱
 
@@ -186,6 +253,8 @@ macOS/Linux (或手动): 在项目根目录命令行运行 python main.py。
 服务启动后，在浏览器访问 http://localhost:{proxy_server_port}/plugin-manager (默认 http://localhost:3001/plugin-manager)。
 
 在这里你可以启用/禁用插件、添加/编辑插件规则、修改全局配置等。
+
+注意：部分全局配置（如端口号）和影响Python插件行为的配置（如上述的文件路径白名单）修改后，需要重启Xice_Aitoolbox服务才能完全生效。
 
 使用AI应用：正常通过你的AI应用与AI交互。当AI的回复中包含已启用插件的指令时，框架会自动调用插件。
 
@@ -213,7 +282,7 @@ web_content_reader_plugin.py: 使用Playwright读取动态网页。
 
 google_search_plugin.py: 使用Playwright进行谷歌搜索。
 
-以及一些用于文件操作和命令执行的高风险示例插件（请务必在理解其风险后再考虑启用和配置）。
+以及一些用于文件操作和命令执行的高风险示例插件（请务必在理解其风险并正确配置路径授权后再考虑启用）。
 
 这些只是示例！框架的强大之处在于你可以轻松添加更多、更复杂的插件。
 
@@ -231,125 +300,87 @@ google_search_plugin.py: 使用Playwright进行谷歌搜索。
 
 编写插件脚本：
 
-语言选择：Python是最常用的选择，因为它有丰富的库并且与框架集成良好。但理论上，任何可以通过命令行调用的可执行文件（如 .bat, .sh, 编译后的 .exe 等）都可以作为插件。
+语言选择：Python是最常用的选择。但任何可以通过命令行调用的可执行文件都可以。
 
-接收参数 (以Python为例):
+接收参数 (Python示例):
 
-如果插件 accepts_parameters 为 true，AI在占位符之间提供的文本会作为命令行参数传递给你的Python脚本。
+参数通过 sys.argv[1] (字符串形式) 接收。若为JSON，需 json.loads(sys.argv[1])。
 
-在Python脚本中，可以通过 sys.argv 列表获取。sys.argv[0] 是脚本本身的路径，sys.argv[1] 是第一个参数（即AI提供的完整参数字符串）。
+返回结果 (Python示例):
 
-如果参数是JSON格式，你需要在脚本中用 json.loads(sys.argv[1]) 来解析。
+通过 print() 输出到标准输出 (stdout)。
 
-返回结果 (以Python为例):
+错误处理 (Python示例):
 
-插件需要将其执行结果打印到标准输出 (stdout)。框架会捕获这些输出。
+错误信息打印到标准错误流 (print("错误", file=sys.stderr))。
 
-使用 print() 函数即可。确保你的主要输出就是结果本身。
+通过 sys.exit(1) 返回非零退出码表示失败。
 
-错误处理 (以Python为例):
+文件路径：建议使用 os.path.join(os.path.dirname(os.path.abspath(__file__)), "relative_file") 构造路径。
 
-如果插件执行出错，应该将错误信息打印到标准错误流 (stderr)，例如 print("错误：无法连接到API", file=sys.stderr)。
+依赖：若有第三方库，加入 requirements.txt 或在文档中说明。
 
-并且，通过非零退出码告诉框架执行失败，例如 sys.exit(1)。
+注册插件到框架 (通过Web界面或编辑 PluginsRule.json):
 
-文件路径：如果插件需要访问其他文件（例如配置文件、模板），推荐使用绝对路径，或相对于插件脚本自身的路径：
+提供唯一的 plugin_id。
 
-import os
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(SCRIPT_DIR, "my_plugin_config.json")
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Python
-IGNORE_WHEN_COPYING_END
+plugin_name_cn：插件中文名。
 
-依赖管理：如果你的Python插件需要第三方库，确保将它们添加到项目的 requirements.txt 文件中，或者在插件的文档中明确指出依赖。
+rule_description：给AI的使用说明，包括功能、何时使用、占位符和参数格式。
 
-注册插件到框架：
+placeholder_start / placeholder_end：调用标记，如 [我的工具] 和 [/我的工具]。
 
-将你的插件脚本（例如 my_amazing_plugin.py）放到项目文件夹内（或者一个固定的、框架能访问到的路径）。
+executable_path：脚本路径（相对或绝对）。
 
-打开Web管理界面 (/plugin-manager) 或直接编辑 PluginsRule.json 文件。
-
-添加一条新的插件定义，包含以下关键信息：
-
-plugin_id: 一个简短、唯一的英文ID，例如 my_amazing_tool。
-
-plugin_name_cn: 插件的中文名称，例如 “我的神奇工具”。
-
-rule_description: 这是给AI看的描述和使用指南。要清晰地说明插件的功能、何时应该使用它、以及调用它时占位符和参数的格式。例如：“当你需要做[某事]时，请回复 [神奇工具]参数1,参数2[/神奇工具]。参数1是...，参数2是...。”
-
-placeholder_start: AI调用插件的起始标记，例如 [神奇工具]。
-
-placeholder_end: AI调用插件的结束标记，例如 [/神奇工具]。
-
-executable_path: 指向你的插件脚本的路径（相对于项目根目录，或者是绝对路径）。例如 my_amazing_plugin.py 或 C:/MyPlugins/my_amazing_plugin.exe。
-
-is_python_script: 如果是Python脚本，设为 true。框架会用 python 命令执行它。
-
-accepts_parameters: 如果插件需要从占位符之间接收参数，设为 true。
-
-is_internal_signal: 几乎总是 false。仅用于极少数框架内部控制信号。
-
-enabled: 设为 true 以启用插件。
+is_python_script (bool), accepts_parameters (bool), enabled (bool)。
 
 测试你的插件：
 
-重启Xice_Aitoolbox框架服务以加载新的插件定义。
+重启框架服务。
 
-通过AI应用，尝试让AI使用你新定义的占位符和参数格式来调用你的插件。
+通过AI应用让AI调用新插件。
 
-检查框架的控制台日志、send.json、received.json 和插件自身的日志（如果你的插件有打印到stderr）来调试问题。
-
-测试各种正常和异常的输入情况。
+检查控制台日志和相关文件进行调试。
 
 高级技巧：谷歌搜索插件的用户配置模式（高风险示例）
 
-自带的 google_search_plugin.py 插件提供了一个高级选项，允许它加载你本地浏览器的用户配置文件（例如Chrome或Edge的User Data Directory）。
+自带的 google_search_plugin.py 插件提供了一个高级选项，允许它加载你本地浏览器的用户配置文件。
 
-目的：尝试通过使用已有的Cookies、登录状态和浏览器指纹来减少被谷歌识别为自动化脚本的几率。
+目的：尝试通过使用已有的Cookies、登录状态等来减少被谷歌识别为机器人的几率。
 
-启用方法：编辑 google_search_plugin.py 文件顶部的 USER_DATA_DIRECTORY_PATH 变量，将其设置为你浏览器User Data目录的正确路径。
+启用方法：编辑 google_search_plugin.py 文件顶部的 USER_DATA_DIRECTORY_PATH 变量，将其设置为你浏览器User Data目录的绝对路径。
 
 重大安全警告：
 
-此功能会授予插件脚本访问该浏览器配置文件下所有数据的权限（包括保存的密码、浏览历史、所有网站的Cookies和登录状态等）。
+此功能会授予插件脚本访问该浏览器配置文件下所有数据的权限。风险极高！
 
-风险极高！ 仅在你完全理解并接受这些风险，并且绝对信任此插件代码和你使用的AI模型时，才应考虑启用。
+插件在启用此模式时，会尝试自动关闭所有正在使用该配置文件的相关浏览器进程。
 
-插件在启用此模式时，会尝试自动关闭所有正在使用该配置文件的相关浏览器进程，这可能导致你正在进行的工作中断。
-
-强烈建议：如果确实需要此功能，请为你的浏览器创建一个全新的、不包含任何敏感信息或个人账户的独立配置文件 (Profile)，专门供此插件使用。
+强烈建议：如需使用，请为此功能创建全新的、不含敏感信息的独立浏览器配置文件。
 
 默认情况下，此功能是禁用的 (USER_DATA_DIRECTORY_PATH为空字符串)。
 
 对话聚合与显示模式 (conformchat.txt)
 
-当AI通过插件与外部世界交互时，往往不是一步完成的。例如，AI可能先调用插件A获取信息，然后基于信息A再调用插件B。Xice_Aitoolbox使用一个名为 conformchat.txt 的临时文件来逐步累积这些交互的文本片段（AI的思考、插件的输出）。
-
-最终，当整个交互链完成，conformchat.txt 中的内容会根据你在 config.json (或Web界面) 中设置的 conform_chat_display_mode 选项，被格式化成一个单一、连贯的回复发送给用户。
+当AI与插件进行多轮交互时，Xice_Aitoolbox 使用 conformchat.txt 临时累积文本片段。最终，根据 config.json 中的 conform_chat_display_mode 设置，将聚合内容发送给用户。
 
 conform_chat_display_mode 选项:
 
-"detailed_plugin_responses" (默认): 显示AI的思考过程和插件的详细执行结果。适合调试和了解细节。
+"detailed_plugin_responses" (默认): 显示AI思考过程和插件详细结果。适合调试。
 
-"compact_plugin_chain": 显示AI的思考过程，但隐藏插件的原始输出，使对话更自然。
+"compact_plugin_chain": 显示AI思考过程，隐藏插件原始输出，对话更自然。
 
-"final_ai_response_only": 只显示AI最终的完整回复，过程完全隐藏。用户体验最简洁。
-
-选择哪种模式取决于你对透明度和简洁性的偏好。
+"final_ai_response_only": 只显示AI最终完整回复，过程完全隐藏。
 
 日志记录与调试
 
 主控制台日志：start.bat 或 python main.py 运行窗口是你的主要信息来源。
 
-send.json / received.json：记录最新一次与目标AI服务的完整HTTP交互。
+send.json / received.json：记录最新一次与目标AI服务的完整HTTP交互 (如果 log_intercepted_data 为 true)。
 
-conformchat.txt：临时存储对话聚合内容，有助于理解插件链。
+conformchat.txt：临时存储对话聚合内容。
 
-插件标准错误流(stderr)：你的插件可以通过 print("debug info", file=sys.stderr) 输出调试信息到主控制台。Playwright插件也会在这里输出大量日志。
+插件标准错误流(stderr)：插件的调试信息会输出到主控制台。
 
 安全考量：框架与插件的责任
 
@@ -357,7 +388,7 @@ conformchat.txt：临时存储对话聚合内容，有助于理解插件链。
 
 框架的责任：
 
-提供配置选项来限制插件行为（例如，路径白名单，尽管目前部分高风险插件直接允许任意路径）。
+提供配置选项来限制插件行为（如通过config.json中的路径授权）。
 
 清晰地记录插件的调用和执行。
 
@@ -365,17 +396,21 @@ conformchat.txt：临时存储对话聚合内容，有助于理解插件链。
 
 谨慎选择和启用插件：不要运行来源不明或你不完全信任的插件。
 
-理解插件权限：明确每个插件能做什么，特别是那些能操作文件、执行命令或访问网络的插件。
+理解插件权限：明确每个插件能做什么。
 
-配置路径白名单：对于文件操作类插件，务必在 config.json 中配置严格的 file_operations_allowed_base_paths 和 project_generator_allowed_base_paths_map，将AI的操作限制在安全的、指定的目录下。
+严格配置路径授权 (config.json)：
 
-警惕“危险”插件：对于标记为“危险”、“极度危险”的插件（如任意文件更新、任意命令执行、代码沙盒），在未完全理解其风险并做好隔离措施前，切勿启用。这些插件默认设计为具有高权限，是为了提供最大的灵活性给高级用户在受控环境中使用，但同时也意味着极高的风险。
+对于 project_generator_allowed_base_paths_map 和 file_operations_allowed_base_paths，务必仔细审查和配置。只授予AI访问您明确期望它能访问的、安全的目录的权限。
+
+默认配置使用项目内部的相对路径，这是一个相对安全的基础。如需扩展到项目外部，请确保你了解所授权路径的内容和风险。
+
+警惕“危险”插件：对于标记为“危险”、“极度危险”的插件（如任意文件更新、任意命令执行、代码沙盒），在未完全理解其风险并做好隔离措施前，切勿启用，或确保其操作被严格限制在安全的、非关键的、你完全控制的目录下。这些插件若无严格路径限制，风险极高。
 
 用户配置模式的风险：再次强调，让插件加载你的真实浏览器用户数据目录是极度危险的行为。
 
-不轻信AI的输入：AI生成的任何准备传递给插件的参数（如文件路径、URL、命令）都应被视为不可信输入，插件自身需要进行严格的验证和清理，以防范路径遍历、命令注入等安全漏洞。
+不轻信AI的输入：AI生成的任何准备传递给插件的参数（如文件路径、URL、命令）都应被视为不可信输入，插件自身需要进行严格的验证和清理。
 
-插件代码安全：如果你自己编写插件，你需要对插件的代码安全负责。避免在插件中引入漏洞。
+插件代码安全：如果你自己编写插件，你需要对插件的代码安全负责。
 
 最小权限原则：始终只授予AI和插件完成其预定任务所必需的最小权限。
 
@@ -407,6 +442,6 @@ Xice_Aitoolbox的潜力在于社区的共同建设。我们欢迎各种形式的
 
 许可证
 
-本项目采用 ISC许可证
+本项目采用 ISC许可证 (或其他你在项目中明确指定的开源许可证)。
 
 感谢您选择 Xice_Aitoolbox 框架！期待看到您用它创造出令人惊叹的AI应用和工具！
