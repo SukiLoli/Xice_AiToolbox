@@ -125,11 +125,24 @@ AI爱好者与高级用户：希望赋予本地AI超出聊天框的能力，实�
 
 Node.js (版本 18.x 或 20.x+ 推荐) - 用于运行框架的核心服务。
 
-检查：命令行输入 node -v 和 npm -v。
-
+检查：命令行输入 
+```
+node -v
+```
+ 和 
+ ```
+npm -v
+```
 Python (版本 3.8+ 推荐) - 用于运行Python插件和框架的某些部分。
 
-检查：命令行输入 python --version (或 python3 --version)。
+检查：命令行输入 
+```
+python --version
+```
+ 或 
+ ```
+ python3 --version
+```
 
 Windows用户安装时务必勾选 "Add Python to PATH"。
 
@@ -139,16 +152,27 @@ Windows用户安装时务必勾选 "Add Python to PATH"。
 
 第二步：安装框架核心依赖 (Node.js & Python)
 
-Node.js依赖：在项目根目录打开命令行，运行 npm install。
+Node.js依赖：在项目根目录打开命令行，运行 
+```
+npm install
+```
 
-Python依赖：在项目根目录的命令行，运行 pip install -r requirements.txt。
+Python依赖：在项目根目录的命令行，运行 
+```
+pip install -r requirements.txt
+```
 
 这将安装框架运行和自带示例插件所需的Python库（如playwright, beautifulsoup4等）。
 
 安装Playwright浏览器驱动 (非常重要！)：
-
+```
 python -m playwright install chromium 
-# 或 python -m playwright install (安装所有)
+```
+或 
+```
+python -m playwright install
+```
+(安装所有)
 IGNORE_WHEN_COPYING_START
 content_copy
 download
