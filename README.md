@@ -146,25 +146,25 @@ python --version
 
 Windows用户安装时务必勾选 "Add Python to PATH"。
 
-**第一步：获取框架代码
+**第一步：获取框架代码**
 
 从GitHub下载本项目的ZIP包并解压，或使用 git clone。这个解压后的文件夹就是你的“项目根目录”。
 
-**第二步：安装框架核心依赖 (Node.js & Python)
+**第二步：安装框架核心依赖 (Node.js & Python)**
 
-*Node.js依赖：在项目根目录打开命令行，运行 
+**Node.js依赖**：在项目根目录打开命令行，运行 
 ```
 npm install
 ```
 
-*Python依赖：在项目根目录的命令行，运行 
+**Python依赖**：在项目根目录的命令行，运行 
 ```
 pip install -r requirements.txt
 ```
 
 这将安装框架运行和自带示例插件所需的Python库（如playwright, beautifulsoup4等）。
 
-*安装Playwright浏览器驱动 (非常重要！)：
+**安装Playwright浏览器驱动** (非常重要！)：
 ```
 python -m playwright install chromium 
 ```
@@ -176,20 +176,21 @@ python -m playwright install
 
 没有这个，任何依赖浏览器的插件（如网页读取、谷歌搜索）都无法工作。
 
-**第三步：关键配置：连接与授权 (config.json)
+**第三步：关键配置：连接与授权 (config.json)**
 
-*编辑项目根目录下的 config.json 文件，这是框架的“控制面板”。
+**编辑项目根目录下的 config.json 文件，这是框架的“控制面板”。**
 
-*target_proxy_url (必需):
-
+target_proxy_url (必需):
+```
 作用：告诉框架将AI的请求最终转发到哪里。这通常是您本地运行的AI服务（如Ollama、LM Studio暴露的API地址）或您配置的本地AI反向代理服务的URL。
 
 示例：如果您的本地AI服务在 http://localhost:11434，则配置为 "target_proxy_url": "http://localhost:11434"。
 
 新手提示：如果您不确定，请检查您AI应用或反代工具的设置。
+```
 
-*proxy_server_port:
-
+proxy_server_port:
+```
 作用：Xice_Aitoolbox框架自身监听的端口号。您的AI应用需要将请求发送到这个端口。
 
 默认值：3001。通常无需修改，除非此端口已被占用。
@@ -197,9 +198,10 @@ python -m playwright install
 文件与项目路径授权 (重要！):
 
 背景：为了安全，部分插件（如生成项目、更新文件、删除文件）默认只能在特定目录下工作。您需要通过 config.json 来“授权”这些目录。
+```
 
-*project_generator_allowed_base_paths_map:
-
+project_generator_allowed_base_paths_map:
+```
 作用：定义AI在调用“生成项目框架”插件时，可以使用的“快捷名称”与实际系统路径的映射。
 
 默认示例：
@@ -215,9 +217,10 @@ python -m playwright install
 "my_docs_projects": "C:/Users/YourName/Documents/AiProjects" (Windows) 或
 "my_docs_projects": "/Users/YourName/Documents/AiProjects" (macOS/Linux)。
 然后，您可以告诉AI使用您定义的“快捷名称”（如my_docs_projects）。
+```
 
 #file_operations_allowed_base_paths:
-
+```
 作用：一个列表，定义了“更新文件内容”和“删除文件”等插件被授权操作的基础目录。AI只能在这些目录及其子目录中进行文件操作。
 
 默认示例：
@@ -235,26 +238,27 @@ python -m playwright install
 安全提示：请谨慎配置这些路径！确保只授予AI访问您期望它能访问的目录的权限。避免授予对系统根目录或包含敏感文件的目录的访问权限。 详见安全考量章节。
 
 建议：为了方便初次使用，您可以在项目根目录下手动创建 AiGeneratedProjects, generated_projects_default, AiManagedFiles 这几个文件夹。
+```
 
-*其他配置项：
+**其他配置项：**
 
 config.json中还有许多其他控制日志记录、插件行为超时的选项。您可以暂时使用默认值，或参考文件内的注释（如果提供）以及后续的Web管理界面进行调整。
 
-**第四步：配置你的AI应用以使用本框架
+**第四步：配置你的AI应用以使用本框架**
 
-*修改你的AI聊天客户端（或其他AI应用）的API设置，将其API基地址 (Base URL) 指向Xice_Aitoolbox框架的监听地址。
+**修改你的AI聊天客户端（或其他AI应用）的API设置，将其API基地址 (Base URL) 指向Xice_Aitoolbox框架的监听地址。**
 
 例如：如果proxy_server_port是3001（默认值），则AI应用的API基地址应设为 http://localhost:3001。
 
-*运行与管理你的工具箱
+**运行与管理你的工具箱**
 
-*启动框架服务：
+*启动框架服务*：
 
 Windows: 双击项目根目录的 start.bat。
 
 macOS/Linux (或手动): 在项目根目录命令行运行 python main.py。
 
-*管理插件与配置 (Web界面)：
+*管理插件与配置 (Web界面)：*
 
 服务启动后，在浏览器访问 http://localhost:{proxy_server_port}/plugin-manager (默认 http://localhost:3001/plugin-manager)。
 
@@ -274,7 +278,7 @@ macOS/Linux (或手动): 在项目根目录命令行运行 python main.py。
 
 Web管理界面 (/plugin-manager) 是增删改查和启停插件最便捷的入口。所有插件的定义都保存在项目根目录的 PluginsRule.json 文件中。
 
-*自带的基础示例插件
+**自带的基础示例插件**
 
 本项目自带了一些基础插件，作为示例和开箱即用的工具：
 
@@ -292,7 +296,7 @@ google_search_plugin.py: 使用Playwright进行谷歌搜索。
 
 这些只是示例！框架的强大之处在于你可以轻松添加更多、更复杂的插件。
 
-*重点：如何为框架开发你自己的插件
+**重点：如何为框架开发你自己的插件**
 
 这是发挥Xice_Aitoolbox框架潜力的关键！
 
@@ -340,7 +344,7 @@ executable_path：脚本路径（相对或绝对）。
 
 is_python_script (bool), accepts_parameters (bool), enabled (bool)。
 
-*测试你的插件：
+**测试你的插件：**
 
 重启框架服务。
 
@@ -356,7 +360,7 @@ is_python_script (bool), accepts_parameters (bool), enabled (bool)。
 
 启用方法：编辑 google_search_plugin.py 文件顶部的 USER_DATA_DIRECTORY_PATH 变量，将其设置为你浏览器User Data目录的绝对路径。
 
-*重大安全警告：
+**重大安全警告：**
 
 此功能会授予插件脚本访问该浏览器配置文件下所有数据的权限。风险极高！
 
@@ -366,7 +370,7 @@ is_python_script (bool), accepts_parameters (bool), enabled (bool)。
 
 默认情况下，此功能是禁用的 (USER_DATA_DIRECTORY_PATH为空字符串)。
 
-*对话聚合与显示模式 (conformchat.txt)
+**对话聚合与显示模式 (conformchat.txt)**
 
 当AI与插件进行多轮交互时，Xice_Aitoolbox 使用 conformchat.txt 临时累积文本片段。最终，根据 config.json 中的 conform_chat_display_mode 设置，将聚合内容发送给用户。
 
@@ -378,7 +382,7 @@ conform_chat_display_mode 选项:
 
 "final_ai_response_only": 只显示AI最终完整回复，过程完全隐藏。
 
-*日志记录与调试
+**日志记录与调试**
 
 主控制台日志：start.bat 或 python main.py 运行窗口是你的主要信息来源。
 
@@ -388,21 +392,21 @@ conformchat.txt：临时存储对话聚合内容。
 
 插件标准错误流(stderr)：插件的调试信息会输出到主控制台。
 
-*安全考量：
+*安全考量：*
 
 安全是使用Xice_Aitoolbox框架的首要考虑因素。 框架本身提供机制，但安全性很大程度上取决于你如何配置它以及你编写/使用的插件。
 
-*框架的作用：
+*框架的作用：*
 
 提供配置选项来限制插件行为（如通过config.json中的路径授权）。
 
 清晰地记录插件的调用和执行。
 
-*你的责任 (作为框架用户和插件开发者)：
+*你的责任 (作为框架用户和插件开发者)：*
 
 谨慎选择和启用插件：不要运行来源不明或你不完全信任的插件。
 
-*理解插件权限：
+*理解插件权限：*
 明确每个插件能做什么。
 
 *严格配置路径授权 (config.json)：
