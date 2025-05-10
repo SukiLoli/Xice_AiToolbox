@@ -146,25 +146,25 @@ python --version
 
 Windows用户安装时务必勾选 "Add Python to PATH"。
 
-第一步：获取框架代码
+##第一步：获取框架代码
 
 从GitHub下载本项目的ZIP包并解压，或使用 git clone。这个解压后的文件夹就是你的“项目根目录”。
 
-第二步：安装框架核心依赖 (Node.js & Python)
+##第二步：安装框架核心依赖 (Node.js & Python)
 
-Node.js依赖：在项目根目录打开命令行，运行 
+#Node.js依赖：在项目根目录打开命令行，运行 
 ```
 npm install
 ```
 
-Python依赖：在项目根目录的命令行，运行 
+#Python依赖：在项目根目录的命令行，运行 
 ```
 pip install -r requirements.txt
 ```
 
 这将安装框架运行和自带示例插件所需的Python库（如playwright, beautifulsoup4等）。
 
-安装Playwright浏览器驱动 (非常重要！)：
+#安装Playwright浏览器驱动 (非常重要！)：
 ```
 python -m playwright install chromium 
 ```
@@ -173,20 +173,14 @@ python -m playwright install chromium
 python -m playwright install
 ```
 (安装所有)
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Bash
-IGNORE_WHEN_COPYING_END
 
 没有这个，任何依赖浏览器的插件（如网页读取、谷歌搜索）都无法工作。
 
-第三步：关键配置：连接与授权 (config.json)
+##第三步：关键配置：连接与授权 (config.json)
 
-编辑项目根目录下的 config.json 文件，这是框架的“控制面板”。
+#编辑项目根目录下的 config.json 文件，这是框架的“控制面板”。
 
-target_proxy_url (必需):
+#target_proxy_url (必需):
 
 作用：告诉框架将AI的请求最终转发到哪里。这通常是您本地运行的AI服务（如Ollama、LM Studio暴露的API地址）或您配置的本地AI反向代理服务的URL。
 
@@ -194,7 +188,7 @@ target_proxy_url (必需):
 
 新手提示：如果您不确定，请检查您AI应用或反代工具的设置。
 
-proxy_server_port:
+#proxy_server_port:
 
 作用：Xice_Aitoolbox框架自身监听的端口号。您的AI应用需要将请求发送到这个端口。
 
@@ -204,7 +198,7 @@ proxy_server_port:
 
 背景：为了安全，部分插件（如生成项目、更新文件、删除文件）默认只能在特定目录下工作。您需要通过 config.json 来“授权”这些目录。
 
-project_generator_allowed_base_paths_map:
+#project_generator_allowed_base_paths_map:
 
 作用：定义AI在调用“生成项目框架”插件时，可以使用的“快捷名称”与实际系统路径的映射。
 
@@ -214,12 +208,6 @@ project_generator_allowed_base_paths_map:
   "my_ai_projects": "./AiGeneratedProjects", 
   "default_projects": "./generated_projects_default"
 }
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Json
-IGNORE_WHEN_COPYING_END
 
 这意味着，如果AI说“使用my_ai_projects作为基础路径生成一个项目”，框架会将其定位到项目根目录下的 AiGeneratedProjects 文件夹。
 
@@ -228,7 +216,7 @@ IGNORE_WHEN_COPYING_END
 "my_docs_projects": "/Users/YourName/Documents/AiProjects" (macOS/Linux)。
 然后，您可以告诉AI使用您定义的“快捷名称”（如my_docs_projects）。
 
-file_operations_allowed_base_paths:
+#file_operations_allowed_base_paths:
 
 作用：一个列表，定义了“更新文件内容”和“删除文件”等插件被授权操作的基础目录。AI只能在这些目录及其子目录中进行文件操作。
 
@@ -239,12 +227,6 @@ file_operations_allowed_base_paths:
   "./generated_projects_default",
   "./AiManagedFiles"        
 ]
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Json
-IGNORE_WHEN_COPYING_END
 
 这些路径同样是相对于项目根目录的。
 
@@ -254,25 +236,25 @@ IGNORE_WHEN_COPYING_END
 
 建议：为了方便初次使用，您可以在项目根目录下手动创建 AiGeneratedProjects, generated_projects_default, AiManagedFiles 这几个文件夹。
 
-其他配置项：
+#其他配置项：
 
 config.json中还有许多其他控制日志记录、插件行为超时的选项。您可以暂时使用默认值，或参考文件内的注释（如果提供）以及后续的Web管理界面进行调整。
 
-第四步：配置你的AI应用以使用本框架
+##第四步：配置你的AI应用以使用本框架
 
-修改你的AI聊天客户端（或其他AI应用）的API设置，将其API基地址 (Base URL) 指向Xice_Aitoolbox框架的监听地址。
+#修改你的AI聊天客户端（或其他AI应用）的API设置，将其API基地址 (Base URL) 指向Xice_Aitoolbox框架的监听地址。
 
 例如：如果proxy_server_port是3001（默认值），则AI应用的API基地址应设为 http://localhost:3001。
 
-运行与管理你的工具箱
+#运行与管理你的工具箱
 
-启动框架服务：
+#启动框架服务：
 
 Windows: 双击项目根目录的 start.bat。
 
 macOS/Linux (或手动): 在项目根目录命令行运行 python main.py。
 
-管理插件与配置 (Web界面)：
+#管理插件与配置 (Web界面)：
 
 服务启动后，在浏览器访问 http://localhost:{proxy_server_port}/plugin-manager (默认 http://localhost:3001/plugin-manager)。
 
@@ -292,7 +274,7 @@ macOS/Linux (或手动): 在项目根目录命令行运行 python main.py。
 
 Web管理界面 (/plugin-manager) 是增删改查和启停插件最便捷的入口。所有插件的定义都保存在项目根目录的 PluginsRule.json 文件中。
 
-自带的基础示例插件
+#自带的基础示例插件
 
 本项目自带了一些基础插件，作为示例和开箱即用的工具：
 
@@ -310,7 +292,7 @@ google_search_plugin.py: 使用Playwright进行谷歌搜索。
 
 这些只是示例！框架的强大之处在于你可以轻松添加更多、更复杂的插件。
 
-重点：如何为框架开发你自己的插件
+#重点：如何为框架开发你自己的插件
 
 这是发挥Xice_Aitoolbox框架潜力的关键！
 
