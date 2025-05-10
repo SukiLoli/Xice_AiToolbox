@@ -21,6 +21,7 @@ pip install -r requirements.txt
 5.确定反代项目端口，打开http://localhost:3001/plugin-manager，配置config中端口并保存。完成配置。调整ai应用中自定义模型服务，key仍为反代项目的key，端口号改为3001（也可配置）
 6.关闭start.bat窗口，启动start.bat
 7.开始使用
+
 **简易插件开发思路**
 1.提取本项目目录和代码
 2.设计插件思路或者找到某个已有的本地工具提取项目目录和代码
