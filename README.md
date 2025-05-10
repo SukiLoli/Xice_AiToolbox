@@ -1,178 +1,153 @@
-# Xice_Aitoolbox: 您的本地AI交互增强与控制工具箱
+# Xice_Aitoolbox: 本地AI交互的中间层插件工具箱框架
 
-![Xice_Aitoolbox Logo](https://img.shields.io/badge/Xice_Aitoolbox-v1.2.0-blueviolet?style=for-the-badge&logo= πρώτη)
-<!-- 版本号可自行更新 -->
+**Xice_Aitoolbox 是一个强大的、开源的本地中间层框架，旨在通过灵活的插件系统，极大地增强和自定义您与本地AI模型或服务的交互方式。它允许开发者和技术爱好者轻松创建和集成自定义功能（插件），让AI能够执行超出标准聊天范围的各种任务。**
 
-**Xice_Aitoolbox** 是一个在您本地计算机上运行的中间层工具箱，旨在监听、记录、增强并精细控制您的AI应用程序与本地AI反代服务之间的HTTP通信。它通过引入一个灵活的插件系统，使得AI助手能够调用外部程序和脚本（例如执行谷歌搜索、读取动态网页、操作本地文件等），从而极大地扩展其实用性和能力边界。
+Xice_Aitoolbox 是一个强大的、开源的本地中间层框架，它拦截AI应用的请求，分析AI模型的响应，并根据预设规则或AI的指令调用各种“工具”（即插件）。这些工具可以是读取网页、执行搜索、操作文件、运行代码，乃至任何您能想到的、可以通过脚本实现的功能。
 
-无论您是希望AI更智能的普通用户，还是寻求深入了解和控制AI通信、扩展AI能力的开发者，Xice_Aitoolbox都能为您提供强大的支持。
-
-**核心亮点：**
-*   **动态网页交互**：通过Playwright（一种强大的浏览器自动化工具）赋能AI“真实地”浏览网页、执行搜索，有效应对动态内容和部分反爬机制。
-*   **本地用户配置模式（可选，高风险）**：允许插件（如谷歌搜索）加载您本机的浏览器用户配置（Cookies、登录状态等），以进一步模拟真实用户行为，但需高度警惕其安全风险。
-*   **可视化插件管理**：通过Web界面轻松管理插件的启用/禁用、添加、编辑和删除。
-*   **全面的配置与日志**：提供详细的配置选项和日志记录，方便用户和开发者进行调试与监控。
+**本项目提供的是一个核心框架和一些基础示例插件。其真正的力量在于您的创造力和您为它构建的插件生态！**
 
 ## 目录
 
-1.  [它能做什么？(功能特性)](#它能做什么功能特性)
-2.  [它是如何工作的？(简易流程)](#它是如何工作的简易流程)
+1.  [Xice_Aitoolbox：它是什么，为什么你需要它？](#xice_aitoolbox它是什么为什么你需要它)
+    *   [核心理念：可扩展的插件框架](#核心理念可扩展的插件框架)
+    *   [主要功能特性](#主要功能特性)
+2.  [它是如何工作的？(框架流程)](#它是如何工作的框架流程)
 3.  [系统架构图（给开发者）](#系统架构图给开发者)
-4.  [谁适合使用？](#谁适合使用)
-5.  [快速开始：安装与配置](#快速开始安装与配置)
-    *   [第零步：你需要什么？(前提条件)](#第零步你需要什么前提条件)
-    *   [第一步：获取工具箱 (下载项目)](#第一步获取工具箱-下载项目)
-    *   [第二步：安装“大脑助手”的依赖 (Node.js)](#第二步安装大脑助手的依赖-nodejs)
-    *   [第三步：安装“小工具”的依赖 (Python)](#第三步安装小工具的依赖-python)
-    *   [第四步：关键配置 (config.json)](#第四步关键配置-configjson)
-    *   [第五步：认识你的AI应用](#第五步认识你的ai应用)
-6.  [如何运行 Xice_Aitoolbox](#如何运行-xice_aitoolbox)
-7.  [核心功能：强大的插件系统](#核心功能强大的插件系统)
-    *   [通过Web界面管理插件](#通过web界面管理插件)
-    *   [内置插件概览](#内置插件概览)
-    *   [高级技巧：谷歌搜索插件的用户配置模式（高风险）](#高级技巧谷歌搜索插件的用户配置模式高风险)
-    *   [开发者：编写你自己的插件](#开发者编写你自己的插件)
-8.  [对话聚合功能 (`conformchat.txt`)](#对话聚合功能-conformchattxt)
-9.  [查看日志与调试](#查看日志与调试)
-10. [安全第一！(重要安全注意事项)](#安全第一重要安全注意事项)
-11. [参与贡献](#参与贡献)
-12. [遇到问题？](#遇到问题)
-13. [许可证](#许可证)
+4.  [谁适合使用这个框架？](#谁适合使用这个框架)
+5.  [快速开始：部署你的工具箱框架](#快速开始部署你的工具箱框架)
+    *   [前提条件：你需要准备什么？](#前提条件你需要准备什么)
+    *   [第一步：获取框架代码](#第一步获取框架代码)
+    *   [第二步：安装框架核心依赖 (Node.js & Python)](#第二步安装框架核心依赖-nodejs--python)
+    *   [第三步：关键配置：连接你的AI环境](#第三步关键配置连接你的ai环境)
+    *   [第四步：配置你的AI应用以使用本框架](#第四步配置你的ai应用以使用本框架)
+6.  [运行与管理你的工具箱](#运行与管理你的工具箱)
+7.  [插件系统：框架的灵魂](#插件系统框架的灵魂)
+    *   [通过Web界面管理插件](#通过web界面管理插件-1)
+    *   [自带的基础示例插件](#自带的基础示例插件)
+    *   [**重点：如何为框架开发你自己的插件**](#重点如何为框架开发你自己的插件)
+    *   [高级技巧：谷歌搜索插件的用户配置模式（高风险示例）](#高级技巧谷歌搜索插件的用户配置模式高风险示例)
+8.  [对话聚合与显示模式 (`conformchat.txt`)](#对话聚合与显示模式-conformchattxt)
+9.  [日志记录与调试](#日志记录与调试)
+10. [安全考量：框架与插件的责任](#安全考量框架与插件的责任)
+11. [参与贡献：共建框架生态](#参与贡献共建框架生态)
+12. [遇到问题？](#遇到问题-1)
+13. [许可证](#许可证-1)
 
-## 它能做什么？(功能特性)
+## Xice_Aitoolbox：它是什么，为什么你需要它？
 
-*   **AI的“眼睛”和“手”**：让AI能访问互联网、读取文件、执行命令。
-*   **HTTP流量监听与转发**: 监听您AI应用的请求，并将其转发到您指定的本地AI服务地址。
-*   **实时记录交互**:
-    *   `send.json`: AI应用发送给AI模型的最新请求。
-    *   `received.json`: AI模型返回给AI应用的最新响应。
-*   **插件化扩展能力**:
-    *   **谷歌搜索**: 使用关键词进行谷歌搜索，获取摘要和链接。
-    *   **高级网页内容读取**: 使用 **Playwright (无头浏览器)** 抓取动态网页内容。
-    *   **文件操作**: 列出目录、读取/更新/删除文件（部分操作有安全风险提示）。
-    *   **代码执行**: 在“沙盒”中运行Python或JavaScript代码片段（实验性，高风险）。
-    *   **自定义脚本**: 运行批处理文件或任意程序（高风险）。
-    *   **插件启用/禁用开关**: 灵活控制哪些工具可用。
-*   **Web配置管理界面**: 在浏览器中方便地管理插件和全局系统设置。
-*   **AI规则注入**: 自动向AI的对话中提示当前可用的工具及其用法。
-*   **对话聚合 (`conformchat.txt`)**: 将AI与插件的多轮交互结果聚合成更连贯的最终回复。
-*   **跨平台**: 基于Python和Node.js，可在Windows, macOS, Linux上运行。
+在与本地运行的AI模型（例如通过Ollama, LM Studio, Jan等工具，或接入本地反代指向的商业模型）交互时，您可能会发现AI的能力受限于其训练数据和内置功能。Xice_Aitoolbox旨在打破这些限制。
 
-## 它是如何工作的？(简易流程)
+### 核心理念：可扩展的插件框架
 
-想象一下：
-1.  你的AI聊天软件（**AI应用**）想执行一个复杂任务，比如“用谷歌搜索‘今天天气怎么样’”。
-2.  它不直接访问谷歌，而是把这个请求发给 **Xice_Aitoolbox**。
-3.  Xice_Aitoolbox 看到请求中包含 `[谷歌搜索]今天天气怎么样[/谷歌搜索]` 这样的特殊指令。
-4.  它启动“谷歌搜索”这个小工具（一个Python脚本）。
-5.  这个小工具像真人一样打开浏览器（使用Playwright），在谷歌上搜索，然后把结果（网页摘要和链接）告诉Xice_Aitoolbox。
-6.  Xice_Aitoolbox 把这个搜索结果再发回给你的AI模型（通过你配置的**本地AI反代**），AI模型就能理解搜索结果并回复你了。
-7.  所有这些中间步骤的请求和回复，Xice_Aitoolbox都会记录下来，方便你查看。
+Xice_Aitoolbox的核心价值在于它提供了一个**中间层**，这个中间层具备**高度的可扩展性**。它本身不直接提供AI模型，而是：
 
-(AI应用 ➔ **Xice_Aitoolbox** ➔ 插件执行/本地AI反代 ➔ AI服务商 ➔ 本地AI反代 ➔ **Xice_Aitoolbox** ➔ AI应用)
+1.  **拦截**：捕获您的AI应用（如聊天客户端）与您的本地AI服务（或指向云端AI服务的本地反向代理）之间的通信。
+2.  **分析**：检查AI模型的回复中是否包含调用特定“工具”的指令（通过预定义的占位符）。
+3.  **执行**：如果检测到指令，框架会调用相应的**插件**——这些插件是外部脚本或程序，负责执行具体任务。
+4.  **反馈**：插件的执行结果会返回给框架，框架再将其整合到对话流中，反馈给AI模型进行下一步处理，或直接呈现给用户。
+5.  **自定义**：最重要的是，您可以**轻松编写和集成自己的插件**，让AI具备几乎无限的本地能力。想让AI控制你的智能家居？整理你的下载文件夹？生成特定格式的报告？只要你能用脚本实现，就能做成插件！
+
+### 主要功能特性
+
+*   **灵活的插件架构**：轻松添加、移除、配置用Python、批处理或其他语言编写的插件。
+*   **HTTP流量监听与转发**：作为AI应用和AI服务之间的透明代理。
+*   **请求/响应实时记录**：便于调试和分析AI通信 (`send.json`, `received.json`)。
+*   **Web配置管理界面**：在浏览器中直观地管理插件和系统全局设置。
+*   **AI规则动态注入**：自动向AI的对话中提示当前已启用的插件及其使用方法。
+*   **对话聚合 (`conformchat.txt`)**: 将多轮插件调用和AI回复聚合成连贯的最终输出，支持多种显示模式。
+*   **跨平台兼容**：基于Python和Node.js，可在Windows, macOS, Linux上运行。
+
+## 它是如何工作的？(框架流程)
+
+1.  **配置**：您将AI应用的请求目标指向Xice_Aitoolbox框架监听的端口。
+2.  **接收与分析**：框架的Node.js服务接收到请求。如果是新对话，会初始化`conformchat.txt`。
+3.  **规则注入 (可选)**：若配置，框架会将已启用插件的使用规则注入到发送给AI模型的请求中。
+4.  **转发至AI模型**：框架将（可能已修改的）请求转发到您在`config.json`中配置的`target_proxy_url`（您的本地AI服务）。
+5.  **AI响应**：AI模型处理请求并返回响应给框架。
+6.  **插件检测与执行**：
+    *   框架分析AI的回复文本，查找是否有匹配已启用插件的“占位符”指令（例如`[我的插件]参数[/我的插件]`）。
+    *   **如果找到插件调用**：
+        *   框架提取指令和参数。
+        *   调用相应的插件脚本/程序（例如，一个Python脚本）。
+        *   插件执行任务（如访问API、读写文件、运行命令等）。
+        *   插件将其结果输出给框架。
+        *   框架将AI的原始回复（占位符之前的部分）和插件的结果（根据显示模式格式化）添加到`conformchat.txt`中，并构建一个新的请求，将这些信息作为上下文再次发送给AI模型（返回步骤4），让AI基于新信息继续对话。
+    *   **如果未找到插件调用 (或插件链结束)**：
+        *   AI的最终回复被追加到`conformchat.txt`。
+        *   框架读取`conformchat.txt`的全部内容，将其作为最终响应发送回给您的AI应用。
+        *   清空`conformchat.txt`，为下一次交互做准备。
 
 ## 系统架构图（给开发者）
-
 ```
 sequenceDiagram
-    participant AI_App as AI应用 (例如聊天客户端)
-    participant XiceTB as Xice_Aitoolbox (localhost:proxy_server_port)
-    participant Plugins as XiceTB 插件 (Python/外部程序)
-    participant LocalProxy as 目标AI反代 (localhost:target_proxy_url)
-    participant AIService as 远程AI服务商
+    participant UserApp as 用户AI应用
+    participant XiceFramework as Xice_Aitoolbox框架 (Node.js + Python)
+    participant PluginX as 自定义插件 (e.g., Python脚本)
+    participant LocalAIService as 本地AI服务/反代
 
-    AI_App->>+XiceTB: 1. HTTP请求 (如 /v1/chat/completions)
-    XiceTB->>XiceTB: 2. (若首次) 注入插件规则到请求体
-    XiceTB->>XiceTB: 3. Log到 send.json
-    XiceTB->>+LocalProxy: 4. 转发请求 (body可能已修改)
-    LocalProxy->>+AIService: 5. 与AI服务商通信
-    AIService-->>-LocalProxy: 6. AI响应
-    LocalProxy-->>-XiceTB: 7. AI响应返回给XiceTB
-    XiceTB->>XiceTB: 8. Log到 received.json
-    
-    alt AI响应中不含插件调用 或 插件链结束
-        XiceTB->>XiceTB: 9a. (根据显示模式) 追加AI回复到 conformchat.txt
-        XiceTB->>XiceTB: 10a. 读取 conformchat.txt 全部内容
-        XiceTB-->>-AI_App: 11a. 发送聚合后的单一JSON响应
-        XiceTB->>XiceTB: 12a. (若成功) 清空 conformchat.txt
-    else AI响应中检测到启用的插件调用
-        XiceTB->>XiceTB: 9b. (根据显示模式) 追加占位符前文本到 conformchat.txt
-        XiceTB->>+Plugins: 10b. 执行对应插件 (带参数)
-        Plugins-->>-XiceTB: 11b. 插件返回结果 (stdout)
-        XiceTB->>XiceTB: 12b. (根据显示模式) 追加插件结果到 conformchat.txt
-        XiceTB->>XiceTB: 13b. 构建新请求 (原对话历史 + AI回复 + 插件结果作为 'user' 消息)
-        XiceTB-)LocalProxy: 14b. 再次请求AI (返回步骤4)
+    UserApp->>+XiceFramework: 1. 发送请求 (例如，包含AI指令)
+    XiceFramework->>XiceFramework: 2. 预处理 (日志, 规则注入, conformchat初始化)
+    XiceFramework->>+LocalAIService: 3. 转发请求至AI服务
+    LocalAIService-->>-XiceFramework: 4. AI模型响应
+    XiceFramework->>XiceFramework: 5. 分析AI响应，检测插件占位符
+    alt 发现插件调用 (例如 [PluginX]params[/PluginX])
+        XiceFramework->>XiceFramework: 6a. 提取参数，记录AI回复片段到conformchat
+        XiceFramework->>+PluginX: 7a. 调用插件PluginX并传递参数
+        PluginX-->>-XiceFramework: 8a. PluginX返回执行结果
+        XiceFramework->>XiceFramework: 9a. 记录插件结果到conformchat
+        XiceFramework->>XiceFramework: 10a. 构建包含插件结果的新上下文给AI
+        XiceFramework->LocalAIService: 11a. 再次请求AI服务 (循环回步骤3)
+    else 无插件调用 或 插件链结束
+        XiceFramework->>XiceFramework: 6b. 将最终AI回复记录到conformchat
+        XiceFramework->>XiceFramework: 7b. 读取完整的conformchat内容
+        XiceFramework-->>-UserApp: 8b. 返回聚合后的最终响应
     end
 ```
-谁适合使用？
+谁适合使用这个框架？
 
-AI应用普通用户：希望你的AI助手能上网查资料、看懂网页、帮你搜索。
+AI爱好者与高级用户：希望赋予本地AI超出聊天框的能力，实现特定自动化任务。
 
-AI开发者/技术爱好者：需要调试AI通信、扩展AI的本地能力、对Web自动化和中间件感兴趣。
+开发者：
 
-自动化任务探索者：想结合AI的智能与脚本的执行力，完成更复杂的任务。
+需要一个中间层来调试、记录和修改AI模型的输入输出。
 
-效率追求者：让AI帮你处理本地文件、运行常用命令。
+希望快速为现有AI应用集成自定义的本地功能或第三方服务。
 
-快速开始：安装与配置
+对构建AI工具、探索AI Agent雏形感兴趣。
 
-请一步步跟我来，让Xice_Aitoolbox跑起来！
+需要定制化AI解决方案的团队或个人：利用框架的插件能力，将AI与特定业务流程或私有数据源结合。
 
-第零步：你需要什么？(前提条件)
+快速开始：部署你的工具箱框架
+前提条件：你需要准备什么？
 
-你需要两样“法宝”装在你的电脑上：
+确保你的电脑已安装以下软件（安装方法详见上一版README或网上教程）：
 
-Node.js (版本 18.x 或 20.x+ 推荐)
+Node.js (版本 18.x 或 20.x+ 推荐) - 用于运行框架的核心服务。
 
-是什么？ 一个让JavaScript能在你电脑上跑的工具（不仅仅是在浏览器里）。Xice_Aitoolbox的“大脑中枢”会用到它。
+检查：命令行输入 node -v 和 npm -v。
 
-怎么装？
+Python (版本 3.8+ 推荐) - 用于运行Python插件和框架的某些部分。
 
-打开 nodejs.org。
+检查：命令行输入 python --version (或 python3 --version)。
 
-下载推荐的LTS版本安装包。
+Windows用户安装时务必勾选 "Add Python to PATH"。
 
-像安装普通软件一样安装它。安装时请确保勾选了类似 "Add to PATH" 的选项。
+第一步：获取框架代码
 
-怎么检查？ 打开你的命令行工具（Windows上是 cmd 或 PowerShell，macOS/Linux上是 Terminal），输入 node -v 然后按回车，再输入 npm -v 按回车。如果都显示版本号，就说明装好了！
+从GitHub下载本项目的ZIP包并解压，或使用 git clone。这个解压后的文件夹就是你的“项目根目录”。
 
-Python (版本 3.8+ 推荐)
+第二步：安装框架核心依赖 (Node.js & Python)
 
-是什么？ 一种流行的编程语言。Xice_Aitoolbox的各种“小工具”（插件）是用它写的。
+Node.js依赖：在项目根目录打开命令行，运行 npm install。
 
-怎么装？
+Python依赖：在项目根目录的命令行，运行 pip install -r requirements.txt。
 
-打开 python.org。
+这将安装框架运行和自带示例插件所需的Python库（如playwright, beautifulsoup4等）。
 
-下载最新的Python 3版本安装包。
+安装Playwright浏览器驱动 (非常重要！)：
 
-Windows用户特别注意：在安装开始界面，务必勾选 "Add Python to PATH" 或 "将Python添加到环境变量" 这个选项，非常重要！然后点 "Install Now"。
-
-怎么检查？ 在命令行里输入 python --version 或 python3 --version，如果显示版本号，就OK。
-
-第一步：获取工具箱 (下载项目)
-
-访问 Xice_Aitoolbox 的 GitHub页面 (请替换为实际链接)。
-
-点击绿色的 "Code" 按钮，然后选择 "Download ZIP"。
-
-下载完成后，解压这个ZIP包到你电脑上一个你喜欢的位置（比如桌面、文档等）。这个文件夹就是我们的“项目根目录”。
-
-第二步：安装“大脑助手”的依赖 (Node.js)
-
-“大脑助手”需要一些辅助工具才能工作。
-
-打开你的命令行工具。
-
-导航到项目根目录：
-
-例如，如果你解压到了桌面的 Xice_Aitoolbox_v1.2 文件夹，你可能需要输入类似 cd C:\Users\你的用户名\Desktop\Xice_Aitoolbox_v1.2 (Windows) 或 cd /Users/你的用户名/Desktop/Xice_Aitoolbox_v1.2 (macOS/Linux)。
-
-小技巧：在文件管理器中打开项目根目录，然后在地址栏输入 cmd (Windows) 或右键选择“在此处打开终端/命令行”(某些系统)可以直接在该目录打开命令行。
-
-在命令行里，输入以下命令并按回车：
-
-npm install
+python -m playwright install chromium 
+# 或 python -m playwright install (安装所有)
 IGNORE_WHEN_COPYING_START
 content_copy
 download
@@ -180,416 +155,258 @@ Use code with caution.
 Bash
 IGNORE_WHEN_COPYING_END
 
-这会自动下载并安装所有Node.js需要的依赖项。看到一些进度条和文字输出是正常的。
+没有这个，任何依赖浏览器的插件（如网页读取、谷歌搜索）都无法工作。
 
-第三步：安装“小工具”的依赖 (Python)
+第三步：关键配置：连接你的AI环境
 
-各种“小工具”（插件）也需要一些Python库的支持。
+编辑项目根目录下的 config.json 文件：
 
-确保你的命令行还在项目根目录下。
+target_proxy_url (必需): 设置为你本地AI服务（或反向代理）的URL。例如 "http://localhost:3000"。这是框架将AI请求最终转发到的地方。
 
-输入以下命令并按回车：
+proxy_server_port (可选): 框架自身监听的端口，默认为 3001。
 
-pip install -r requirements.txt
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Bash
-IGNORE_WHEN_COPYING_END
+其他配置项详见文件内注释或后续章节。
 
-这会根据 requirements.txt 文件自动安装所有Python依赖，包括 playwright, beautifulsoup4, requests 和 send2trash。
+第四步：配置你的AI应用以使用本框架
 
-重要：安装Playwright的“遥控器” (浏览器驱动)
-Playwright需要控制一个真实的浏览器来工作。你需要告诉它下载哪个浏览器。
-在命令行输入（推荐至少安装Chromium）：
+修改你的AI聊天客户端（或其他AI应用）的API设置，将其API基地址 (Base URL) 指向Xice_Aitoolbox框架的监听地址。
 
-python -m playwright install chromium
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Bash
-IGNORE_WHEN_COPYING_END
+例如：如果proxy_server_port是3001，则AI应用的API基地址应设为 http://localhost:3001。
 
-或者，如果你想一次性安装所有主流浏览器的驱动（Chromium, Firefox, WebKit），可以输入：
+运行与管理你的工具箱
 
-python -m playwright install
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Bash
-IGNORE_WHEN_COPYING_END
+启动框架服务：
 
-提示：这个步骤会下载浏览器文件，可能需要一些时间和磁盘空间。如果下载慢或失败，请检查你的网络连接，或者尝试更换网络环境。没有浏览器驱动，网页读取和谷歌搜索插件将无法工作！
+Windows: 双击项目根目录的 start.bat。
 
-第四步：关键配置 (config.json)
+macOS/Linux (或手动): 在项目根目录命令行运行 python main.py。
 
-你需要告诉Xice_Aitoolbox一些重要信息。这些信息都在项目根目录的 config.json 文件里。
+管理插件与配置 (Web界面)：
 
-在项目根目录找到 config.json 文件。
+服务启动后，在浏览器访问 http://localhost:{proxy_server_port}/plugin-manager (默认 http://localhost:3001/plugin-manager)。
 
-用文本编辑器打开它（比如记事本、VS Code、Notepad++等）。
+在这里你可以启用/禁用插件、添加/编辑插件规则、修改全局配置等。
 
-最重要的配置项是 target_proxy_url:
+使用AI应用：正常通过你的AI应用与AI交互。当AI的回复中包含已启用插件的指令时，框架会自动调用插件。
 
-这个URL是你本地AI反向代理服务的地址。你的AI应用（如聊天软件）原本是直接和这个地址通信的。
+停止框架服务：在运行服务的命令行窗口按 Ctrl + C。
 
-现在，Xice_Aitoolbox会作为中间人。你需要把这个地址填对。
+插件系统：框架的灵魂
 
-示例：如果你的本地AI反代服务运行在 http://localhost:3000，那么 config.json 中应该是：
-
-"target_proxy_url": "http://localhost:3000",
-IGNORE_WHEN_COPYING_START
-content_copy
-download
-Use code with caution.
-Json
-IGNORE_WHEN_COPYING_END
-
-新手提示：如果你不确定这个地址是什么，请查看你正在使用的AI聊天软件或反代工具的设置。它通常是一个以 http://localhost: 或 http://127.0.0.1: 开头的地址，后面跟着一个端口号。
-
-（可选）其他配置项：
-
-proxy_server_port: Xice_Aitoolbox自己监听的端口，默认为 3001。通常不需要修改。
-
-conform_chat_display_mode: 控制最终AI回复的详细程度，新手可以暂时不管，用默认的 "detailed_plugin_responses"。
-
-其他配置项的详细说明请参考下文或 config.json 内的注释。
-
-你也可以通过Web界面修改这些配置 (启动服务后访问 http://localhost:3001/plugin-manager，端口号以你的配置为准)。
-
-第五步：认识你的AI应用
-
-最后，你需要让你的AI聊天软件（或其他AI应用）把请求发送给Xice_Aitoolbox，而不是直接发送给原来的本地AI反代地址。
-
-打开你的AI应用的设置界面。
-
-找到API基地址 (Base URL) 或类似的设置项。
-
-将其修改为 http://localhost:{proxy_server_port}，其中 {proxy_server_port} 是你在 config.json 中设置的端口（默认为 3001）。
-
-示例：如果 proxy_server_port 是 3001，那么API基地址就改成 http://localhost:3001。
-
-恭喜！基础安装和配置完成！
-
-如何运行 Xice_Aitoolbox
-
-确保你已经完成了上面的所有安装和配置步骤。 特别是 target_proxy_url 必须正确配置！
-
-确保你的AI应用已经配置为将请求发送给Xice_Aitoolbox的监听端口 (例如 http://localhost:3001)。
-
-启动Xice_Aitoolbox服务：
-
-Windows用户: 直接双击项目根目录下的 start.bat 文件。它会打开一个命令行窗口，并开始运行服务。
-
-macOS/Linux用户 (或手动启动):
-
-打开命令行工具。
-
-导航到项目根目录。
-
-输入 python main.py 并按回车。
-
-观察控制台输出：
-
-你应该会看到一些启动信息，包括Node.js服务监听的端口、目标转发URL、加载的插件数量等。
-
-如果没有严重错误提示，说明服务已成功启动。
-
-开始使用你的AI应用：
-
-正常与你的AI对话。
-
-尝试让AI调用一个已启用的插件，例如：“[获取时间][/获取时间]” 或 “[谷歌搜索]今天的新闻[/谷歌搜索]”。
-
-观察Xice_Aitoolbox的控制台输出，你应该能看到请求被拦截、插件被调用等日志信息。
-
-停止服务：
-
-在Xice_Aitoolbox运行的那个命令行窗口中，按 Ctrl + C 组合键。
-
-系统会提示你是否终止批处理作业，按 Y 然后回车即可。
-
-核心功能：强大的插件系统
-
-插件是Xice_Aitoolbox的灵魂，它们赋予AI执行各种外部任务的能力。
+这是Xice_Aitoolbox最核心的部分。插件是独立的脚本或程序，框架通过AI的指令来调用它们。
 
 通过Web界面管理插件
 
-这是管理插件最方便的方式。
+Web管理界面 (/plugin-manager) 是增删改查和启停插件最便捷的入口。所有插件的定义都保存在项目根目录的 PluginsRule.json 文件中。
 
-启动Xice_Aitoolbox服务。
+自带的基础示例插件
 
-打开你的网页浏览器（如Chrome, Edge, Firefox）。
+本项目自带了一些基础插件，作为示例和开箱即用的工具：
 
-访问 http://localhost:{proxy_server_port}/plugin-manager (默认是 http://localhost:3001/plugin-manager)。
+time_plugin.py: 获取当前系统时间。
 
-在这个页面上，你可以：
+directory_lister_plugin.py: 列出指定目录内容。
 
-查看所有已定义的插件列表。
+file_content_reader_plugin.py: 读取文本文件内容。
 
-启用或禁用单个插件。
+web_content_reader_plugin.py: 使用Playwright读取动态网页。
 
-添加新插件：填写插件的ID、名称、给AI的描述、占位符、可执行文件路径等信息。
+google_search_plugin.py: 使用Playwright进行谷歌搜索。
 
-编辑现有插件。
+以及一些用于文件操作和命令执行的高风险示例插件（请务必在理解其风险后再考虑启用和配置）。
 
-删除插件。
+这些只是示例！框架的强大之处在于你可以轻松添加更多、更复杂的插件。
 
-保存更改到 PluginsRule.json 文件。
+重点：如何为框架开发你自己的插件
 
-管理全局系统配置（config.json 的内容）。
+这是发挥Xice_Aitoolbox框架潜力的关键！
 
-注意：部分全局配置（如端口号）和影响Python插件行为的配置（如路径白名单）修改后，需要重启Xice_Aitoolbox服务 (即重新运行 start.bat 或 python main.py) 才能完全生效。
+构思你的插件：
 
-内置插件概览
+功能：它要实现什么？例如：获取天气、翻译文本、控制某个API、操作特定应用等。
 
-以下是一些预置的插件示例（你可以在Web管理界面查看完整列表和详细描述）：
+输入：AI需要提供什么参数给你的插件？例如：城市名、待翻译的文本、API的查询参数等。
 
-获取当前系统时间 (time_plugin.py)：简单实用。
+输出：你的插件执行完毕后，要返回什么信息给AI？例如：天气预报、翻译结果、API的响应数据等。
 
-列出指定目录内容 (directory_lister_plugin.py)：让AI查看文件夹。
+编写插件脚本：
 
-读取文件内容 (file_content_reader_plugin.py)：AI可以阅读本地文件。
+语言选择：Python是最常用的选择，因为它有丰富的库并且与框架集成良好。但理论上，任何可以通过命令行调用的可执行文件（如 .bat, .sh, 编译后的 .exe 等）都可以作为插件。
 
-读取网页内容 (Playwright版) (web_content_reader_plugin.py)：AI的“火眼金睛”，能看懂动态网页。
+接收参数 (以Python为例):
 
-谷歌搜索 (Playwright版) (google_search_plugin.py)：AI的“超级大脑”，能用谷歌搜索。
+如果插件 accepts_parameters 为 true，AI在占位符之间提供的文本会作为命令行参数传递给你的Python脚本。
 
-更新文件内容 (危险!) (file_updater_plugin.py)：允许AI修改或创建文件，请务必在理解安全风险的前提下启用和配置。
+在Python脚本中，可以通过 sys.argv 列表获取。sys.argv[0] 是脚本本身的路径，sys.argv[1] 是第一个参数（即AI提供的完整参数字符串）。
 
-生成项目框架 (危险!) (project_generator_plugin.py)：AI可以帮你搭建项目目录结构，同样有安全风险。
+如果参数是JSON格式，你需要在脚本中用 json.loads(sys.argv[1]) 来解析。
 
-执行代码片段 (沙盒 - 实验性, 危险!) (code_sandbox_plugin.py)：允许AI运行代码，风险极高，默认的沙盒非常不完善，请勿用于不受信任的代码。
+返回结果 (以Python为例):
 
-删除文件或文件夹 (移至回收站) (file_deleter_plugin.py)：需要配置白名单路径。
+插件需要将其执行结果打印到标准输出 (stdout)。框架会捕获这些输出。
 
-运行程序或命令 (极度危险!) (program_runner_plugin.py)：赋予AI执行任意系统命令的能力，安全风险最高，请仅在完全隔离和受控的环境中使用，或确保其被禁用。
+使用 print() 函数即可。确保你的主要输出就是结果本身。
 
-继续AI回复 (continue_reply_plugin.py)：一个内部信号插件，帮助AI处理超长回复。
+错误处理 (以Python为例):
 
-插件的配置文件是项目根目录下的 PluginsRule.json。
+如果插件执行出错，应该将错误信息打印到标准错误流 (stderr)，例如 print("错误：无法连接到API", file=sys.stderr)。
 
-高级技巧：谷歌搜索插件的用户配置模式（高风险）
+并且，通过非零退出码告诉框架执行失败，例如 sys.exit(1)。
 
-google_search_plugin.py 提供了一个可选的高级模式，可以尝试加载你本地浏览器的用户配置文件 (User Data Directory)。
+文件路径：如果插件需要访问其他文件（例如配置文件、模板），推荐使用绝对路径，或相对于插件脚本自身的路径：
 
-目的：携带你的Cookies、登录状态等信息访问谷歌，可能有助于减少被识别为机器人。
+import os
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(SCRIPT_DIR, "my_plugin_config.json")
+IGNORE_WHEN_COPYING_START
+content_copy
+download
+Use code with caution.
+Python
+IGNORE_WHEN_COPYING_END
 
-如何启用：
+依赖管理：如果你的Python插件需要第三方库，确保将它们添加到项目的 requirements.txt 文件中，或者在插件的文档中明确指出依赖。
 
-打开 google_search_plugin.py 文件。
+注册插件到框架：
 
-在文件顶部找到 USER_DATA_DIRECTORY_PATH = "" 这一行。
+将你的插件脚本（例如 my_amazing_plugin.py）放到项目文件夹内（或者一个固定的、框架能访问到的路径）。
 
-将其修改为你的Chrome或Edge的 "User Data" 目录的绝对路径。文件内有常见操作系统的路径示例。
+打开Web管理界面 (/plugin-manager) 或直接编辑 PluginsRule.json 文件。
 
-例如，你提供的路径是 C:\Users\bin\AppData\Local\Microsoft\Edge\User Data，在Python中应写为 USER_DATA_DIRECTORY_PATH = "C:/Users/bin/AppData/Local/Microsoft/Edge/User Data" (注意斜杠方向)。
+添加一条新的插件定义，包含以下关键信息：
 
-重要：如果配置了此路径，插件在运行时会尝试自动关闭所有相关的浏览器进程 (例如，关闭所有Edge进程) 以确保能成功加载配置文件。这可能会中断你正在进行的浏览器工作！
+plugin_id: 一个简短、唯一的英文ID，例如 my_amazing_tool。
 
-安全警告（再次强调！）：
+plugin_name_cn: 插件的中文名称，例如 “我的神奇工具”。
 
-此模式会授予插件访问你浏览器所有数据的权限（密码、历史、登录态等）。
+rule_description: 这是给AI看的描述和使用指南。要清晰地说明插件的功能、何时应该使用它、以及调用它时占位符和参数的格式。例如：“当你需要做[某事]时，请回复 [神奇工具]参数1,参数2[/神奇工具]。参数1是...，参数2是...。”
 
-风险极高！请仅在你完全理解并接受这些风险，并且信任此插件代码和调用它的AI时才使用。
+placeholder_start: AI调用插件的起始标记，例如 [神奇工具]。
 
-强烈建议：为此功能创建一个全新的、干净的浏览器配置文件 (Profile)，专门给这个插件使用，不要用你日常的主配置文件。
+placeholder_end: AI调用插件的结束标记，例如 [/神奇工具]。
 
-如果你不想冒这个风险，或者不想插件自动关闭你的浏览器，请将 USER_DATA_DIRECTORY_PATH 留空。插件会自动回退到不加载用户配置的常规模式。
+executable_path: 指向你的插件脚本的路径（相对于项目根目录，或者是绝对路径）。例如 my_amazing_plugin.py 或 C:/MyPlugins/my_amazing_plugin.exe。
 
-开发者：编写你自己的插件
+is_python_script: 如果是Python脚本，设为 true。框架会用 python 命令执行它。
 
-想让AI拥有更多超能力？你可以自己动手写插件！
+accepts_parameters: 如果插件需要从占位符之间接收参数，设为 true。
 
-明确功能：你的插件要做什么？接收什么参数？输出什么结果？
+is_internal_signal: 几乎总是 false。仅用于极少数框架内部控制信号。
 
-编写脚本 (通常是Python)：
+enabled: 设为 true 以启用插件。
 
-参数通过 sys.argv 列表获取 (例如 sys.argv[1] 是第一个参数)。
+测试你的插件：
 
-结果通过 print() 函数输出到标准输出 (stdout)。
+重启Xice_Aitoolbox框架服务以加载新的插件定义。
 
-错误信息可以打印到标准错误流 (stderr) print("错误信息", file=sys.stderr)，并通过非零退出码 sys.exit(1) 表示执行失败。
+通过AI应用，尝试让AI使用你新定义的占位符和参数格式来调用你的插件。
 
-Playwright插件：需要使用 asyncio 库，并确保用户已正确安装Playwright和浏览器驱动。
+检查框架的控制台日志、send.json、received.json 和插件自身的日志（如果你的插件有打印到stderr）来调试问题。
 
-路径管理：如果插件需要访问同目录下的其他文件，建议使用 os.path.join(os.path.dirname(os.path.abspath(__file__)), "文件名") 来构造绝对路径。
+测试各种正常和异常的输入情况。
 
-放置脚本：将你的 .py 或 .bat 等可执行文件放到Xice_Aitoolbox项目文件夹内（或者一个你知道的绝对路径）。
+高级技巧：谷歌搜索插件的用户配置模式（高风险示例）
 
-在Web界面添加插件定义 (或手动编辑 PluginsRule.json)：
+自带的 google_search_plugin.py 插件提供了一个高级选项，允许它加载你本地浏览器的用户配置文件（例如Chrome或Edge的User Data Directory）。
 
-提供一个唯一的 plugin_id。
+目的：尝试通过使用已有的Cookies、登录状态和浏览器指纹来减少被谷歌识别为自动化脚本的几率。
 
-plugin_name_cn：插件的中文名。
+启用方法：编辑 google_search_plugin.py 文件顶部的 USER_DATA_DIRECTORY_PATH 变量，将其设置为你浏览器User Data目录的正确路径。
 
-rule_description：给AI的提示，告诉它如何使用这个插件（包括占位符和参数格式）。
+重大安全警告：
 
-placeholder_start 和 placeholder_end：AI调用插件时使用的特殊标记，例如 [我的插件] 和 [/我的插件]。
+此功能会授予插件脚本访问该浏览器配置文件下所有数据的权限（包括保存的密码、浏览历史、所有网站的Cookies和登录状态等）。
 
-executable_path：你的脚本文件名（如果和proxy_server.js同级）或完整路径。
+风险极高！ 仅在你完全理解并接受这些风险，并且绝对信任此插件代码和你使用的AI模型时，才应考虑启用。
 
-is_python_script：如果你的插件是Python脚本，勾选此项，系统会用 python 命令执行它。
+插件在启用此模式时，会尝试自动关闭所有正在使用该配置文件的相关浏览器进程，这可能导致你正在进行的工作中断。
 
-accepts_parameters：如果你的插件需要接收占位符之间的参数，勾选此项。
+强烈建议：如果确实需要此功能，请为你的浏览器创建一个全新的、不包含任何敏感信息或个人账户的独立配置文件 (Profile)，专门供此插件使用。
 
-is_internal_signal：仅用于特殊内部控制插件（如“继续回复”），普通插件不勾选。
+默认情况下，此功能是禁用的 (USER_DATA_DIRECTORY_PATH为空字符串)。
 
-enabled：是否启用此插件。
+对话聚合与显示模式 (conformchat.txt)
 
-测试：充分测试你的插件，确保它能按预期工作，并能正确处理各种输入和异常情况。
+当AI通过插件与外部世界交互时，往往不是一步完成的。例如，AI可能先调用插件A获取信息，然后基于信息A再调用插件B。Xice_Aitoolbox使用一个名为 conformchat.txt 的临时文件来逐步累积这些交互的文本片段（AI的思考、插件的输出）。
 
-对话聚合功能 (conformchat.txt)
+最终，当整个交互链完成，conformchat.txt 中的内容会根据你在 config.json (或Web界面) 中设置的 conform_chat_display_mode 选项，被格式化成一个单一、连贯的回复发送给用户。
 
-当AI的回复需要调用多个插件，或者插件的输出需要进一步被AI处理时，Xice_Aitoolbox会将这些中间的文本片段（AI的回复片段、插件的执行结果）逐步累积到一个临时文件 conformchat.txt 中。
+conform_chat_display_mode 选项:
 
-当整个插件调用链处理完毕后，Xice_Aitoolbox会将 conformchat.txt 中的完整内容，根据你在 config.json (或Web界面) 中设置的 conform_chat_display_mode，格式化为最终的、单一的、连贯的消息，发送给前端的AI应用。
+"detailed_plugin_responses" (默认): 显示AI的思考过程和插件的详细执行结果。适合调试和了解细节。
 
-ConformChat 显示模式 (conform_chat_display_mode):
+"compact_plugin_chain": 显示AI的思考过程，但隐藏插件的原始输出，使对话更自然。
 
-"detailed_plugin_responses" (模式1: 详细插件响应 - 默认):
+"final_ai_response_only": 只显示AI最终的完整回复，过程完全隐藏。用户体验最简洁。
 
-最终回复会包含AI的思考片段 + 清晰标记的插件执行结果 + ... + 最终AI总结。
+选择哪种模式取决于你对透明度和简洁性的偏好。
 
-优点：过程完全透明，方便调试和理解AI的思考过程及插件效果。
+日志记录与调试
 
-缺点：最终回复可能显得冗长，包含较多技术性信息。
+主控制台日志：start.bat 或 python main.py 运行窗口是你的主要信息来源。
 
-"compact_plugin_chain" (模式2: 紧凑插件链):
+send.json / received.json：记录最新一次与目标AI服务的完整HTTP交互。
 
-最终回复会包含AI的思考片段 + ... + 最终AI总结。插件的原始输出结果不会直接展示给用户，但会被AI在后台“看到”并用于生成下一步回复。
+conformchat.txt：临时存储对话聚合内容，有助于理解插件链。
 
-优点：对话更流畅自然，隐藏了中间的技术细节。
+插件标准错误流(stderr)：你的插件可以通过 print("debug info", file=sys.stderr) 输出调试信息到主控制台。Playwright插件也会在这里输出大量日志。
 
-缺点：如果插件执行出错或结果不理想，用户可能不知道问题出在哪里。
+安全考量：框架与插件的责任
 
-"final_ai_response_only" (模式3: 仅最终AI响应):
+安全是使用Xice_Aitoolbox框架的首要考虑因素。 框架本身提供机制，但安全性很大程度上取决于你如何配置它以及你编写/使用的插件。
 
-**只显示整个插件链执行完毕后，AI生成的最后一条完整回复。**所有中间的AI思考片段和插件结果都被隐藏。
+框架的责任：
 
-优点：用户体验最简洁，就像AI一次性完成了所有事情。
+提供配置选项来限制插件行为（例如，路径白名单，尽管目前部分高风险插件直接允许任意路径）。
 
-缺点：完全屏蔽了过程，调试困难，用户无法感知插件的运作。
+清晰地记录插件的调用和执行。
 
-你可以根据自己的需求和偏好，在 config.json 或Web管理界面中选择合适的显示模式。
+你的责任 (作为框架用户和插件开发者)：
 
-查看日志与调试
+谨慎选择和启用插件：不要运行来源不明或你不完全信任的插件。
 
-遇到问题时，日志是你的好帮手：
+理解插件权限：明确每个插件能做什么，特别是那些能操作文件、执行命令或访问网络的插件。
 
-实时控制台日志:
+配置路径白名单：对于文件操作类插件，务必在 config.json 中配置严格的 file_operations_allowed_base_paths 和 project_generator_allowed_base_paths_map，将AI的操作限制在安全的、指定的目录下。
 
-运行 start.bat (Windows) 或 python main.py (macOS/Linux) 的那个命令行窗口会实时显示Node.js服务和Python插件的活动日志，包括请求拦截、插件调用、错误信息等。这是排查问题的第一站。
+警惕“危险”插件：对于标记为“危险”、“极度危险”的插件（如任意文件更新、任意命令执行、代码沙盒），在未完全理解其风险并做好隔离措施前，切勿启用。这些插件默认设计为具有高权限，是为了提供最大的灵活性给高级用户在受控环境中使用，但同时也意味着极高的风险。
 
-请求/响应快照:
+用户配置模式的风险：再次强调，让插件加载你的真实浏览器用户数据目录是极度危险的行为。
 
-send.json (项目根目录)：记录了Xice_Aitoolbox发送给目标AI反代的最新一次请求的详细信息（请求头、请求体等）。
+不轻信AI的输入：AI生成的任何准备传递给插件的参数（如文件路径、URL、命令）都应被视为不可信输入，插件自身需要进行严格的验证和清理，以防范路径遍历、命令注入等安全漏洞。
 
-received.json (项目根目录)：记录了Xice_Aitoolbox从目标AI反代接收到的最新一次响应的详细信息。
+插件代码安全：如果你自己编写插件，你需要对插件的代码安全负责。避免在插件中引入漏洞。
 
-这些文件对于分析AI通信的具体内容非常有用。注意：它们只保存最新一次的交互。
+最小权限原则：始终只授予AI和插件完成其预定任务所必需的最小权限。
 
-对话聚合临时文件:
+Xice_Aitoolbox是一个强大的工具，请以负责任的态度使用它，确保你的系统安全。
 
-conformchat.txt (项目根目录)：在插件调用链处理过程中，用于临时存储AI回复片段和插件结果。可以帮助你理解不同显示模式下的内容聚合过程。它在每次新的对话开始时通常会被清空。
+参与贡献：共建框架生态
 
-插件特定日志:
+Xice_Aitoolbox的潜力在于社区的共同建设。我们欢迎各种形式的贡献：
 
-Playwright插件 (如网页读取、谷歌搜索) 会在主控制台（stderr流）输出它们详细的导航和操作日志，例如正在访问哪个URL，是否点击了按钮等。
+分享你的插件：开发了实用的插件？欢迎分享给大家！
 
-你编写的自定义插件也可以通过 print("调试信息", file=sys.stderr) 输出调试日志到主控制台。
+改进框架核心：对Node.js服务或Python主程序有改进建议？
 
-安全第一！(重要安全注意事项)
+完善文档：觉得这份README或其他文档可以更好？
 
-Xice_Aitoolbox赋予了AI强大的能力，但也带来了潜在的安全风险。请务必仔细阅读并理解以下安全准则：
+报告Bug或提出功能建议：通过项目的GitHub "Issues" 区。
 
-信任边界在你手中：
-
-你启用的插件、config.json 中的配置（尤其是路径白名单）以及你允许AI执行的操作，共同决定了整个系统的安全边界。
-
-不要启用你不理解或不信任的插件。
-
-目标URL (target_proxy_url) 的信任：
-
-此URL必须指向你完全信任的本地AI反向代理服务。不要将其指向不受信任的外部网络地址。
-
-插件执行权限 - 最小权限原则：
-
-定期审查你启用的插件。对于不常用或具有高风险操作（如文件修改、命令执行）的插件，请在不需要时禁用它们。
-
-Playwright插件 (网页读取/谷歌搜索)：虽然它们模拟真实浏览器，但它们是在你的计算机上以你的网络身份执行操作。确保AI提供的URL或搜索关键词是可信的，避免访问恶意网站或下载恶意文件。
-
-谷歌搜索插件的用户配置模式：如前所述，加载你的真实浏览器用户配置（USER_DATA_DIRECTORY_PATH）风险极高。它允许插件访问你的Cookies、登录会话、浏览历史等。
-
-强烈建议：如果必须使用此功能，请创建一个专用的、干净的浏览器配置文件 (Profile)，不包含任何个人敏感信息，仅供此插件使用。
-
-切勿轻易使用你日常包含重要数据的主浏览器配置文件。
-
-插件会尝试关闭相关浏览器进程，这本身也是一个需要注意的操作。
-
-“危险”标记的插件 - 务必谨慎：
-
-PluginsRule.json 和Web管理界面中，一些插件被明确标记为“危险”、“极度危险”或有高风险。这些插件通常允许AI在更广泛的范围内操作你的计算机（例如，在任意路径更新文件、生成项目结构、执行任意命令或代码）。
-
-除非你完全理解其潜在后果，并且在完全隔离和受控的环境中进行测试，否则不要轻易启用这些插件。
-
-对于日常使用，如果需要类似功能，请确保这些插件通过 config.json 中的路径白名单 (file_operations_allowed_base_paths, project_generator_allowed_base_paths_map) 进行了严格限制，或者干脆禁用它们。
-
-代码沙盒 (code_sandbox_plugin.py)：它提供的“沙盒”环境非常初级，不能提供真正的安全隔离。执行AI提供的未知代码具有极高风险。
-
-参数处理与网络访问：
-
-所有插件都应该对其从AI接收到的参数进行严格的校验和清理，以防止路径遍历、命令注入等攻击。
-
-插件在访问网络资源时应格外小心。
-
-核心原则：不轻信AI的输入：
-
-虽然AI是你的助手，但它生成的内容（包括要操作的文件路径、要执行的命令、要访问的URL）都应被视为不可信输入，需要经过插件或系统的严格校验。
-
-不要给予AI超出其完成任务所必需的最小权限。
-
-Xice_Aitoolbox是一个强大的工具，请负责任地使用它。
-
-参与贡献
-
-我们欢迎各种形式的贡献！
-
-报告Bug：发现问题？请通过项目GitHub页面的 "Issues"板块告诉我们。
-
-功能建议：有好点子？也请通过 "Issues" 分享。
-
-代码贡献：想改进代码或添加新功能？欢迎提交 "Pull Requests"。
-
-文档改进：觉得这份README可以写得更好？也请不吝赐教。
+提交Pull Requests：如果你修复了Bug或实现了新功能。
 
 遇到问题？
 
-仔细阅读本README，特别是“快速开始”和“安全注意事项”部分。
+仔细阅读本README，特别是安装、配置和安全部分。
 
-检查Xice_Aitoolbox运行的控制台日志，通常错误信息会直接显示在那里。
+检查运行框架的控制台输出，通常能找到错误线索。
 
-查看项目GitHub页面的 "Issues" 板块，看看是否有人遇到过类似的问题。
+查阅GitHub项目的 "Issues" 区，看是否已有解决方案。
 
-如果找不到答案，请创建一个新的 "Issue"，并提供尽可能详细的信息：
-
-你的操作系统和版本。
-
-Node.js 和 Python 的版本。
-
-相关的 config.json 和 PluginsRule.json 配置内容（请隐去敏感信息如API密钥）。
-
-你具体执行了什么操作？AI的输入是什么？
-
-详细的错误日志或截图。
-
-你期望的结果是什么？实际结果是什么？
+若无，请创建一个新的 "Issue"，并提供尽可能详细的信息（操作系统、Node/Python版本、相关配置、错误日志、复现步骤等）。
 
 许可证
 
-本项目采用 ISC许可证 (或你在项目中指定的其他开源许可证)。
+本项目采用 ISC许可证
 
-感谢您使用 Xice_Aitoolbox！希望它能为您的AI交互带来更多可能！
+感谢您选择 Xice_Aitoolbox 框架！期待看到您用它创造出令人惊叹的AI应用和工具！
