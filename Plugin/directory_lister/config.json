@@ -1,0 +1,22 @@
+{
+    "plugin_id": "list_directory_contents",
+    "plugin_name_cn": "列出指定目录内容",
+    "version": "1.0.0",
+    "description": "你需要列出某个文件夹的内容时，请回复 '[列出目录]文件夹路径[/列出目录]'。例如：'[列出目录]C:/Users/YourUser/Documents[/列出目录]' 或 '[列出目录]./my_folder[/列出目录]' 来列出相对路径。我会返回该目录下的文件和子文件夹列表。",
+    "author": "Xice",
+    "enabled": true,
+    "is_python_script": true,
+    "executable_name": "directory_lister_plugin.py",
+    "placeholder_start": "[列出目录]",
+    "placeholder_end": "[/列出目录]",
+    "accepts_parameters": true,
+    "is_internal_signal": false,
+    "parameters": [
+        {
+            "name": "target_path",
+            "type": "string",
+            "description": "要列出内容的目录路径。",
+            "required": true
+        }
+    ]
+}

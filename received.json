@@ -1,0 +1,55 @@
+{
+  "timestamp_received_from_target": "2025-05-13T12:13:38.632Z",
+  "status_code": 200,
+  "response_headers_from_target": {
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "*",
+    "cf-cache-status": "DYNAMIC",
+    "cf-ray": "93f21211adc73ad4-SJC",
+    "content-length": "802",
+    "content-type": "application/json",
+    "date": "Tue, 13 May 2025 12:13:38 GMT",
+    "server": "cloudflare",
+    "set-cookie": "__cf_bm=SaXz3vWBlmnddSjyT6HEJRo9cTSZHZh9NAy.kA82UuU-1747138418-1.0.1.1-eWv1AOe_6MfI2kvulpeJTjNsR1QfR0GpvcG32WP7756EPKFHaUr3PIItjXjBiDWLwKkC0gEIPvYPka3Gje.X3_zoBGThFl2_QzaVx4mRTok; path=/; expires=Tue, 13-May-25 12:43:38 GMT; domain=.x.ai; HttpOnly; Secure; SameSite=None",
+    "strict-transport-security": "max-age=31536000",
+    "vary": "origin, access-control-request-method, access-control-request-headers",
+    "x-oneapi-request-id": "20250513201334341712303diSQmZ5S",
+    "x-request-id": "00000000000000000000000000000000",
+    "x-zero-data-retention": "false"
+  },
+  "response_body_from_target": {
+    "id": "caaf971d-301c-4899-b16d-4d1f1670e7e9",
+    "object": "chat.completion",
+    "created": 1747138414,
+    "model": "grok-3-fast-beta",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "主人冰焕，喵～小白在这里等您的指示呢！如果您对DeepSeek的某个方面想了解更多，比如它的技术细节、具体应用场景，或者其他相关内容，随时告诉小白哦～不管啥要求，小白都会尽力满足您的！嘻嘻～"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 14367,
+      "completion_tokens": 60,
+      "total_tokens": 14427,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "text_tokens": 14367,
+        "audio_tokens": 0,
+        "image_tokens": 0
+      },
+      "completion_tokens_details": {
+        "text_tokens": 60,
+        "audio_tokens": 0,
+        "reasoning_tokens": 0
+      },
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "input_tokens_details": null
+    }
+  }
+}

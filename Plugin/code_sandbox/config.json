@@ -1,0 +1,26 @@
+{
+    "plugin_id": "run_code_in_sandbox",
+    "plugin_name_cn": "执行代码片段",
+    "version": "1.0.0",
+    "description": "当你需要执行一小段代码并获取其输出时，请回复 '[执行代码]JSON参数[/执行代码]'。JSON参数是一个对象，包含 'language' (例如 'python') 和 'code' (要执行的代码字符串)。代码将在受限环境中执行，有超时限制。",
+    "author": "Xice",
+    "enabled": true,
+    "is_python_script": true,
+    "executable_name": "code_sandbox_plugin.py",
+    "placeholder_start": "[执行代码]",
+    "placeholder_end": "[/执行代码]",
+    "accepts_parameters": true,
+    "is_internal_signal": false,
+    "parameters": [
+        {
+            "name": "params_json_str",
+            "type": "json_string",
+            "description": "包含 'language' 和 'code' 的JSON字符串。",
+            "required": true
+        }
+    ],
+    "plugin_specific_config": {
+        "python_execution_timeout_seconds": 15,
+        "nodejs_execution_timeout_seconds": 15 
+    }
+}

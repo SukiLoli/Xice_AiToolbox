@@ -1,0 +1,22 @@
+{
+    "plugin_id": "continue_ai_reply",
+    "plugin_name_cn": "继续AI回复",
+    "version": "1.0.0",
+    "description": "特殊指令：当你生成的回复内容较长，需要分段输出时，可以在当前段落的末尾使用 '[继续回复][/继续回复]' 或 '[继续回复]下一段的提示信息给AI自己看[/继续回复]'。这表示当前内容只是部分，你还有后续内容要生成。",
+    "author": "Xice",
+    "enabled": true,
+    "is_python_script": true,
+    "executable_name": "continue_reply_plugin.py",
+    "placeholder_start": "[继续回复]",
+    "placeholder_end": "[/继续回复]",
+    "accepts_parameters": true,
+    "is_internal_signal": true,
+    "parameters": [
+        {
+            "name": "continuation_hint",
+            "type": "string",
+            "description": "可选的提示信息，供AI在继续生成时参考。",
+            "required": false
+        }
+    ]
+}

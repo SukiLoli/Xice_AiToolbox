@@ -1,0 +1,26 @@
+{
+    "plugin_id": "update_file_contents_unsafe",
+    "plugin_name_cn": "更新文件内容 (任意路径 - 危险!)",
+    "version": "1.1.0",
+    "description": "警告：此插件允许在AI指定的任意系统路径创建或更新文件内容。请极端谨慎使用！当你需要创建或更新一个或多个文件的内容时，请回复 '[更新文件内容_危险]JSON参数[/更新文件内容_危险]'。JSON参数是一个数组，每个元素是一个对象，包含 'path' 和 'content'。",
+    "author": "Xice",
+    "enabled": true,
+    "is_python_script": true,
+    "executable_name": "file_updater_plugin.py",
+    "placeholder_start": "[更新文件内容_危险]",
+    "placeholder_end": "[/更新文件内容_危险]",
+    "accepts_parameters": true,
+    "is_internal_signal": false,
+    "parameters": [
+        {
+            "name": "operations_json_str",
+            "type": "json_string",
+            "description": "包含文件操作的JSON字符串，格式为 '[{\"path\": \"...\", \"content\": \"...\"}, ...]'。",
+            "required": true
+        }
+    ],
+    "plugin_specific_config": {
+        "max_file_size_mb_write": 5,
+        "allow_arbitrary_paths": true 
+    }
+}

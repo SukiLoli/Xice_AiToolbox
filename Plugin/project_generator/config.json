@@ -1,0 +1,25 @@
+{
+    "plugin_id": "generate_project_structure_unsafe",
+    "plugin_name_cn": "生成项目框架 (任意路径 - 危险!)",
+    "version": "1.1.0",
+    "description": "警告：此插件允许在AI指定的任意系统路径创建项目结构和文件。请极端谨慎使用！当你需要创建项目目录结构和初始文件时，请回复 '[生成项目框架_危险]JSON参数[/生成项目框架_危险]'。JSON参数是一个对象，包含 'base_path' 和 'structure'。",
+    "author": "Xice",
+    "enabled": true,
+    "is_python_script": true,
+    "executable_name": "project_generator_plugin.py",
+    "placeholder_start": "[生成项目框架_危险]",
+    "placeholder_end": "[/生成项目框架_危险]",
+    "accepts_parameters": true,
+    "is_internal_signal": false,
+    "parameters": [
+        {
+            "name": "params_json_str",
+            "type": "json_string",
+            "description": "包含 'base_path' 和 'structure' 的JSON字符串。",
+            "required": true
+        }
+    ],
+    "plugin_specific_config": {
+        "allow_arbitrary_paths": true
+    }
+}

@@ -3,204 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xice_Aitoolbox - 插件与系统配置</title>
+    <title>Xice_Aitoolbox - 配置中心</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
-        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
-        h1, h2 { color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px;}
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #4CAF50; color: white; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .actions button { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: none; border-radius: 4px; }
-        .edit-btn { background-color: #ffc107; color: white; }
-        .delete-btn { background-color: #f44336; color: white; }
-        .save-btn { background-color: #4CAF50; color: white; padding: 10px 15px; display: block; margin-top: 10px;}
-        .form-section, .global-config-section { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; }
-        .form-section label, .global-config-section label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-section input[type="text"], .form-section textarea, .form-section select,
-        .global-config-section input[type="text"], .global-config-section input[type="number"], 
-        .global-config-section textarea, .global-config-section select {
-            width: calc(100% - 22px); /* Adjusted for padding and border */
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box; /* Ensures padding and border don't increase width */
+        body { font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif; margin: 0; background-color: #1e1e1e; color: #d4d4d4; line-height: 1.6; }
+        .header { background-color: #252526; padding: 20px; text-align: center; border-bottom: 1px solid #333; }
+        .header h1 { margin: 0; color: #00aaff; font-weight: 300; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 20px; background-color: #2d2d30; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        h2 { color: #00aaff; border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 30px; font-weight: 400; }
+        h2:first-child { margin-top: 0; }
+        .tabs { display: flex; border-bottom: 1px solid #444; margin-bottom: 20px; }
+        .tab-button { padding: 10px 20px; cursor: pointer; background-color: transparent; border: none; color: #ccc; font-size: 1em; transition: background-color 0.3s, color 0.3s; border-bottom: 3px solid transparent; }
+        .tab-button.active { color: #00aaff; border-bottom-color: #00aaff; }
+        .tab-button:hover { background-color: #3a3a3e; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        label { display: block; margin-bottom: 8px; color: #bbb; font-size: 0.9em; }
+        input[type="text"], input[type="number"], input[type="url"], select, textarea {
+            width: calc(100% - 24px); padding: 10px; margin-bottom: 15px; background-color: #3c3c3e; border: 1px solid #555; color: #d4d4d4; border-radius: 4px; font-size: 1em;
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
-        .form-section input[type="checkbox"], .global-config-section input[type="checkbox"] { 
-            margin-right: 5px; vertical-align: middle; width: auto; /* Override previous width */
+        input[type="text"]:focus, input[type="number"]:focus, input[type="url"]:focus, select:focus, textarea:focus {
+            border-color: #00aaff; box-shadow: 0 0 0 2px rgba(0, 170, 255, 0.3); outline: none;
         }
-        .form-section .checkbox-label, .global-config-section .checkbox-label { 
-            font-weight: normal; display: inline; /* Align checkbox and label nicely */ 
+        input[type="checkbox"] { margin-right: 8px; vertical-align: middle; accent-color: #00aaff; }
+        .checkbox-label { font-weight: normal; display: inline-flex; align-items: center; color: #d4d4d4; font-size: 0.95em; }
+        button {
+            padding: 10px 20px; background-color: #007acc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; transition: background-color 0.3s;
+            margin-top: 10px; margin-right: 10px;
         }
-        .button-group { margin-top: 15px; }
-        .button-group button { padding: 10px 15px; cursor: pointer; border: none; border-radius: 4px; margin-right: 10px;}
-        .submit-btn { background-color: #007bff; color: white; }
-        .cancel-btn { background-color: #6c757d; color: white; }
-        #status-message, #global-status-message { margin-top: 15px; padding: 10px; border-radius: 4px; display: none; }
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;}
-        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;}
-        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;}
-        .disabled-row { background-color: #eeeeee !important; color: #999999; }
-        .disabled-row td { text-decoration: line-through; }
+        button:hover { background-color: #005fa3; }
+        button.secondary { background-color: #555; }
+        button.secondary:hover { background-color: #444; }
+        .status-message { margin-top: 15px; padding: 12px; border-radius: 4px; font-size: 0.95em; display: none; }
+        .status-message.success { background-color: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
+        .status-message.error { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
+        .status-message.warning { background-color: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107; }
         .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
         .config-item { display: flex; flex-direction: column; }
-        .config-item small { font-size: 0.8em; color: #666; margin-top: -5px; margin-bottom: 5px;}
+        .config-item small { font-size: 0.8em; color: #888; margin-top: -10px; margin-bottom: 10px; }
+        .plugin-list { list-style: none; padding: 0; }
+        .plugin-item { background-color: #3c3c3e; margin-bottom: 10px; padding: 15px; border-radius: 4px; border-left: 4px solid #007acc; transition: border-left-color 0.3s; }
+        .plugin-item.disabled { border-left-color: #666; }
+        .plugin-item h3 { margin: 0 0 10px 0; color: #00aaff; font-weight: 500; }
+        .plugin-item p { margin: 5px 0; font-size: 0.9em; color: #ccc; }
+        .plugin-item .actions button { font-size: 0.85em; padding: 6px 12px; margin-top: 5px; }
+        #plugin-config-modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: #2d2d30; margin: 10% auto; padding: 25px; border-radius: 8px;
+            width: 80%; max-width: 800px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; color: #00aaff; }
+        .close-button { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; background: none; border: none; }
+        .close-button:hover, .close-button:focus { color: #fff; text-decoration: none; }
+        .form-group { margin-bottom: 15px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Xice_Aitoolbox - 插件与系统配置</h1>
-        <div id="status-message"></div>
-
-        <h2>当前插件列表</h2>
-        <table id="plugins-table">
-            <thead>
-                <tr>
-                    <th>启用?</th>
-                    <th>ID</th>
-                    <th>中文名称</th>
-                    <th>可执行路径/脚本名</th>
-                    <th>Python脚本?</th>
-                    <th>接收参数?</th>
-                    <th>内部信号?</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- 插件行将由JS动态填充 -->
-            </tbody>
-        </table>
-        <button id="save-all-plugins" class="save-btn" style="display: none;">保存所有插件更改到 PluginsRule.json</button>
-
-        <h2>添加/编辑插件</h2>
-        <div class="form-section">
-            <input type="hidden" id="plugin-index" value="-1">
-            <div>
-                <input type="checkbox" id="plugin-enabled" checked>
-                <label for="plugin-enabled" class="checkbox-label">启用此插件</label>
-            </div>
-            <div>
-                <label for="plugin-id">插件ID (唯一, 英文/数字/下划线):</label>
-                <input type="text" id="plugin-id" required>
-            </div>
-            <div>
-                <label for="plugin-name-cn">插件中文名称:</label>
-                <input type="text" id="plugin-name-cn" required>
-            </div>
-            <div>
-                <label for="rule-description">规则描述 (给AI的提示):</label>
-                <textarea id="rule-description" rows="3" required></textarea>
-            </div>
-            <div>
-                <label for="placeholder-start">起始占位符 (例如: [获取时间]):</label>
-                <input type="text" id="placeholder-start" required>
-            </div>
-            <div>
-                <label for="placeholder-end">结束占位符 (例如: [/获取时间]):</label>
-                <input type="text" id="placeholder-end" required>
-            </div>
-            <div>
-                <label for="executable-path">可执行路径/脚本名 (例如: time_plugin.py 或 C:/path/to/app.exe):</label>
-                <input type="text" id="executable-path" required>
-            </div>
-            <div>
-                <input type="checkbox" id="is-python-script">
-                <label for="is-python-script" class="checkbox-label">这是一个Python脚本 (勾选则用 'python' 命令执行)</label>
-            </div>
-            <div>
-                <input type="checkbox" id="accepts-parameters">
-                <label for="accepts-parameters" class="checkbox-label">此插件接收占位符之间的参数</label>
-            </div>
-            <div>
-                <input type="checkbox" id="is-internal-signal">
-                <label for="is-internal-signal" class="checkbox-label">这是一个内部信号插件 (例如: 继续回复)</label>
-            </div>
-            <div class="button-group">
-                <button id="submit-plugin-form" class="submit-btn">添加插件</button>
-                <button id="cancel-edit-plugin" class="cancel-btn" style="display:none;">取消编辑</button>
-            </div>
-        </div>
+    <div class="header">
+        <h1>Xice_Aitoolbox 配置中心</h1>
     </div>
 
     <div class="container">
-        <h2>全局系统配置</h2>
-        <div id="global-status-message"></div>
-        <div class="global-config-section">
-            <div class="config-grid">
-                <div class="config-item">
-                    <label for="config-proxy-server-port">代理服务端口:</label>
-                    <input type="number" id="config-proxy-server-port">
-                    <small>Node.js服务监听的端口。修改后需重启服务。</small>
-                </div>
-                <div class="config-item">
-                    <label for="config-target-proxy-url">目标转发URL:</label>
-                    <input type="text" id="config-target-proxy-url">
-                    <small>请求最终转发到的地址。修改后需重启服务。</small>
-                </div>
-                <div class="config-item">
-                    <label for="config-max-log-response-size-kb">最大日志响应体大小 (KB):</label>
-                    <input type="number" id="config-max-log-response-size-kb">
-                </div>
-                <div class="config-item">
-                    <label for="config-max-plugin-recursion-depth">最大插件递归深度:</label>
-                    <input type="number" id="config-max-plugin-recursion-depth">
-                </div>
-                <div class="config-item">
-                    <label for="config-code-sandbox-python-timeout">Python沙盒超时 (秒):</label>
-                    <input type="number" id="config-code-sandbox-python-timeout">
-                    <small>影响Python插件。修改后需重启服务使插件生效。</small>
-                </div>
-                <div class="config-item">
-                    <label for="config-program-runner-timeout">程序运行器超时 (秒):</label>
-                    <input type="number" id="config-program-runner-timeout">
-                    <small>影响Python插件。修改后需重启服务使插件生效。</small>
-                </div>
-                <div class="config-item">
-                    <label for="config-max-continuation-depth">最大继续回复深度:</label>
-                    <input type="number" id="config-max-continuation-depth">
-                </div>
-                <div class="config-item">
-                    <label for="config-conform-chat-display-mode">ConformChat显示模式:</label>
-                    <select id="config-conform-chat-display-mode">
-                        <option value="detailed_plugin_responses">模式1: 详细插件响应</option>
-                        <option value="compact_plugin_chain">模式2: 紧凑插件链</option>
-                        <option value="final_ai_response_only">模式3: 仅最终AI响应</option>
-                    </select>
-                </div>
-            </div>
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'system-config-tab')">系统配置</button>
+            <button class="tab-button" onclick="openTab(event, 'plugins-tab')">插件管理</button>
+        </div>
 
-            <div style="margin-top: 20px;">
-                <input type="checkbox" id="config-log-intercepted-data">
-                <label for="config-log-intercepted-data" class="checkbox-label">记录拦截数据 (send.json, received.json)</label>
-            </div>
-            <div>
-                <input type="checkbox" id="config-show-node-output-in-python">
-                <label for="config-show-node-output-in-python" class="checkbox-label">在Python控制台显示Node.js日志 <small>(需重启服务生效)</small></label>
-            </div>
-            <div>
-                <input type="checkbox" id="config-log-response-body-in-received-file">
-                <label for="config-log-response-body-in-received-file" class="checkbox-label">在received.json中记录响应体</label>
-            </div>
-            <div>
-                <input type="checkbox" id="config-inject-plugin-rules-on-first-request">
-                <label for="config-inject-plugin-rules-on-first-request" class="checkbox-label">首次请求时注入插件规则给AI</label>
-            </div>
+        <div id="system-config-tab" class="tab-content active">
+            <h2>系统全局配置 (config.json)</h2>
+            <div id="system-status-message" class="status-message"></div>
+            <form id="system-config-form">
+                <div class="config-grid">
+                    <div class="config-item">
+                        <label for="sys-proxy-port">代理服务端口:</label>
+                        <input type="number" id="sys-proxy-port" name="proxy_server_port">
+                        <small>Node.js服务监听端口。需重启服务生效。</small>
+                    </div>
+                    <div class="config-item">
+                        <label for="sys-target-url">目标转发URL:</label>
+                        <input type="url" id="sys-target-url" name="target_proxy_url">
+                        <small>请求最终转发地址。需重启服务生效。</small>
+                    </div>
+                    <div class="config-item">
+                        <label for="sys-max-log-kb">最大日志响应体 (KB):</label>
+                        <input type="number" id="sys-max-log-kb" name="max_log_response_size_kb_in_received_file">
+                    </div>
+                    <div class="config-item">
+                        <label for="sys-max-plugin-recursion">最大插件递归深度:</label>
+                        <input type="number" id="sys-max-plugin-recursion" name="max_plugin_recursion_depth">
+                    </div>
+                    <div class="config-item">
+                        <label for="sys-max-continuation-depth">最大继续回复深度:</label>
+                        <input type="number" id="sys-max-continuation-depth" name="max_continuation_depth">
+                    </div>
+                     <div class="config-item">
+                        <label for="sys-conform-chat-mode">ConformChat显示模式:</label>
+                        <select id="sys-conform-chat-mode" name="conform_chat_display_mode">
+                            <option value="detailed_plugin_responses">详细插件响应</option>
+                            <option value="compact_plugin_chain">紧凑插件链</option>
+                            <option value="final_ai_response_only">仅最终AI响应</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <input type="checkbox" id="sys-log-intercepted" name="log_intercepted_data"><label for="sys-log-intercepted" class="checkbox-label">记录拦截数据 (send/received.json)</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="sys-show-node-output" name="show_node_output_in_python"><label for="sys-show-node-output" class="checkbox-label">Python控制台显示Node.js日志 (需重启服务)</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="sys-log-response-body" name="log_response_body_in_received_file"><label for="sys-log-response-body" class="checkbox-label">在received.json中记录响应体</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="sys-inject-rules" name="inject_plugin_rules_on_first_request"><label for="sys-inject-rules" class="checkbox-label">首次请求时注入插件规则给AI</label>
+                </div>
+                 <div>
+                    <input type="checkbox" id="sys-auto-open-browser" name="auto_open_browser_config"><label for="sys-auto-open-browser" class="checkbox-label">启动时自动打开浏览器配置界面 (需重启服务)</label>
+                </div>
 
-            <div style="margin-top: 20px;">
-                <label for="config-project-generator-allowed-base-paths-map">项目生成器允许的基础路径映射 (JSON):</label>
-                <small>给AI的键名与实际路径的映射。影响Python插件，修改后需重启服务使插件生效。</small>
-                <textarea id="config-project-generator-allowed-base-paths-map" rows="4"></textarea>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="sys-project-gen-paths">项目生成器路径映射 (JSON):</label>
+                    <textarea id="sys-project-gen-paths" name="project_generator_allowed_base_paths_map" rows="4"></textarea>
+                    <small>AI调用键名与实际路径映射。影响Python插件，可能需重启。</small>
+                </div>
+                <div class="form-group">
+                    <label for="sys-file-op-paths">文件操作允许基础路径 (JSON数组):</label>
+                    <textarea id="sys-file-op-paths" name="file_operations_allowed_base_paths" rows="4"></textarea>
+                    <small>AI可操作目录列表。影响Python插件，可能需重启。</small>
+                </div>
+                <button type="submit">保存系统配置</button>
+                <p><small>注意：标记为 (需重启服务) 的配置在保存后需要重启Xice_Aitoolbox才能完全生效。</small></p>
+            </form>
+        </div>
+
+        <div id="plugins-tab" class="tab-content">
+            <h2>插件管理</h2>
+            <div id="plugins-status-message" class="status-message"></div>
+            <ul id="plugin-list-container" class="plugin-list">
+                <!-- 插件项将由JS动态填充 -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- 插件配置模态框 -->
+    <div id="plugin-config-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-plugin-name">插件配置</h2>
+                <span class="close-button" onclick="closePluginModal()">&times;</span>
             </div>
-            <div>
-                <label for="config-file-operations-allowed-base-paths">文件操作允许的基础路径列表 (JSON数组):</label>
-                <small>AI可操作的目录列表。影响Python插件，修改后需重启服务使插件生效。</small>
-                <textarea id="config-file-operations-allowed-base-paths" rows="4"></textarea>
-            </div>
-            
-            <button id="save-global-config" class="save-btn">保存全局配置到 config.json</button>
-            <small style="display:block; margin-top:5px; color: #888;">注意：部分配置 (如端口、目标URL、影响Python插件的配置) 修改后需要重启 Xice_Aitoolbox 服务 (start.bat) 才能完全生效。</small>
+            <form id="plugin-config-form">
+                <input type="hidden" id="modal-plugin-id">
+                <!-- 通用插件配置 -->
+                <div class="form-group">
+                    <input type="checkbox" id="modal-plugin-enabled" name="enabled">
+                    <label for="modal-plugin-enabled" class="checkbox-label">启用插件</label>
+                </div>
+                <div class="form-group">
+                    <label for="modal-plugin-id-display">插件ID (不可修改):</label>
+                    <input type="text" id="modal-plugin-id-display" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="modal-plugin-name-cn">插件中文名称:</label>
+                    <input type="text" id="modal-plugin-name-cn" name="plugin_name_cn" required>
+                </div>
+                 <div class="form-group">
+                    <label for="modal-plugin-version">版本:</label>
+                    <input type="text" id="modal-plugin-version" name="version">
+                </div>
+                <div class="form-group">
+                    <label for="modal-plugin-author">作者:</label>
+                    <input type="text" id="modal-plugin-author" name="author">
+                </div>
+                <div class="form-group">
+                    <label for="modal-plugin-description">描述 (给AI的规则):</label>
+                    <textarea id="modal-plugin-description" name="description" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="modal-plugin-executable">可执行文件名 (在插件目录内):</label>
+                    <input type="text" id="modal-plugin-executable" name="executable_name" required>
+                </div>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <label for="modal-plugin-placeholder-start">起始占位符:</label>
+                        <input type="text" id="modal-plugin-placeholder-start" name="placeholder_start" required>
+                    </div>
+                    <div class="config-item">
+                        <label for="modal-plugin-placeholder-end">结束占位符:</label>
+                        <input type="text" id="modal-plugin-placeholder-end" name="placeholder_end" required>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:15px;">
+                    <input type="checkbox" id="modal-plugin-is-python" name="is_python_script">
+                    <label for="modal-plugin-is-python" class="checkbox-label">是Python脚本</label>
+                </div>
+                <div class="form-group">
+                    <input type="checkbox" id="modal-plugin-accepts-params" name="accepts_parameters">
+                    <label for="modal-plugin-accepts-params" class="checkbox-label">接收参数</label>
+                </div>
+                <div class="form-group">
+                    <input type="checkbox" id="modal-plugin-is-internal" name="is_internal_signal">
+                    <label for="modal-plugin-is-internal" class="checkbox-label">是内部信号 (如继续回复)</label>
+                </div>
+                
+                <!-- 插件特定配置区域 -->
+                <div id="modal-plugin-specific-config-area">
+                    <h3>插件特定配置:</h3>
+                    <!-- 特定配置字段将动态生成于此 -->
+                </div>
+                
+                <button type="submit">保存插件配置</button>
+                <button type="button" class="secondary" onclick="closePluginModal()">取消</button>
+            </form>
         </div>
     </div>
 

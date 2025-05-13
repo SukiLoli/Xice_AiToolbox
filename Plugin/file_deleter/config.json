@@ -1,0 +1,25 @@
+{
+    "plugin_id": "delete_file_or_folder",
+    "plugin_name_cn": "删除文件或文件夹 (移至回收站)",
+    "version": "1.0.0",
+    "description": "当你需要将指定的文件或文件夹移动到回收站时，请回复 '[删除文件]路径[/删除文件]'。路径必须在系统配置的白名单路径之下，并且不能是白名单根路径本身。",
+    "author": "Xice",
+    "enabled": true,
+    "is_python_script": true,
+    "executable_name": "file_deleter_plugin.py",
+    "placeholder_start": "[删除文件]",
+    "placeholder_end": "[/删除文件]",
+    "accepts_parameters": true,
+    "is_internal_signal": false,
+    "parameters": [
+        {
+            "name": "path_to_delete",
+            "type": "string",
+            "description": "要删除的文件或文件夹路径。",
+            "required": true
+        }
+    ],
+    "plugin_specific_config": {
+        "requires_root_config_paths": true 
+    }
+}

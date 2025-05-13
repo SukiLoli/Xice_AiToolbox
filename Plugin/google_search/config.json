@@ -1,0 +1,31 @@
+{
+    "plugin_id": "google_search_tool",
+    "plugin_name_cn": "谷歌搜索",
+    "version": "1.1.0",
+    "description": "当你需要使用谷歌搜索特定关键词并获取结果页面的文本摘要和链接时，请回复 '[谷歌搜索]搜索关键词[/谷歌搜索]'。",
+    "author": "Xice",
+    "enabled": true,
+    "is_python_script": true,
+    "executable_name": "google_search_plugin.py",
+    "placeholder_start": "[谷歌搜索]",
+    "placeholder_end": "[/谷歌搜索]",
+    "accepts_parameters": true,
+    "is_internal_signal": false,
+    "parameters": [
+        {
+            "name": "keywords",
+            "type": "string",
+            "description": "要搜索的关键词。",
+            "required": true
+        }
+    ],
+    "plugin_specific_config": {
+        "user_data_directory_path": "", 
+        "default_browser_type": "chromium",
+        "page_load_timeout_ms": 45000,
+        "wait_after_load_seconds": 3,
+        "launch_browser_headless": false,
+        "max_results_text_length": 25000,
+        "max_links_to_extract": 30
+    }
+}

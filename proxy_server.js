@@ -1,743 +1,500 @@
 const express = require('express');
-const fs = require('fs').promises; // 使用 fs.promises
-const fsSync = require('fs'); // 同步fs用于简单检查
+const fs = require('fs').promises;
+const fsSync = require('fs'); // For synchronous checks like existsSync
 const path = require('path');
 const morgan = require('morgan');
-const fetch = require('node-fetch');
-const { Readable } = require('stream');
+const fetch = require('node-fetch'); // Ensure node-fetch v2 for CJS
 const { spawn } = require('child_process');
 
-// --- 配置加载 ---
-const CONFIG_FILE_PATH = path.join(__dirname, 'config.json');
-let config; 
+const ROOT_CONFIG_FILE_PATH = path.join(__dirname, 'config.json');
+const PLUGINS_DIR = path.join(__dirname, 'Plugin');
+const CONFORM_CHAT_FILE = path.join(__dirname, 'conformchat.txt');
+const SEND_LOG_FILE = path.join(__dirname, 'send.json');
+const RECEIVED_LOG_FILE = path.join(__dirname, 'received.json');
 
-function loadFullConfig() {
+let rootConfig;
+let activePlugins = [];
+let allDiscoveredPluginsInfo = []; 
+let systemPluginRulesDescription = "";
+
+// --- Configuration Loading ---
+function loadRootConfig() {
     try {
-        const configFileContent = fsSync.readFileSync(CONFIG_FILE_PATH, 'utf-8');
-        config = JSON.parse(configFileContent);
-        console.log("[NodeJS] 配置文件已加载/重新加载。");
+        const configFileContent = fsSync.readFileSync(ROOT_CONFIG_FILE_PATH, 'utf-8');
+        rootConfig = JSON.parse(configFileContent);
+        console.log("[NodeJS] 根配置文件已加载。");
     } catch (error) {
-        console.error(`[NodeJS] 致命错误：无法加载或解析 ${path.basename(CONFIG_FILE_PATH)}。请确保文件存在且格式正确。`);
-        console.error(error.message);
-        process.exit(1); 
-    }
-}
-
-loadFullConfig(); 
-
-let PROXY_SERVER_PORT;
-let LOG_INTERCEPTED_DATA;
-let TARGET_PROXY_URL;
-let LOG_RESPONSE_BODY_IN_RECEIVED_FILE;
-let MAX_LOG_RESPONSE_SIZE_KB_IN_RECEIVED_FILE;
-let MAX_PLUGIN_RECURSION_DEPTH;
-let INJECT_PLUGIN_RULES_ON_FIRST_REQUEST;
-let MAX_CONTINUATION_DEPTH;
-let CONFORM_CHAT_DISPLAY_MODE; 
-
-function reassignConfigVariables() {
-    PROXY_SERVER_PORT = config.proxy_server_port || 3001;
-    LOG_INTERCEPTED_DATA = config.log_intercepted_data !== undefined ? config.log_intercepted_data : true;
-    TARGET_PROXY_URL = config.target_proxy_url; 
-    LOG_RESPONSE_BODY_IN_RECEIVED_FILE = config.log_response_body_in_received_file !== undefined ? config.log_response_body_in_received_file : true;
-    MAX_LOG_RESPONSE_SIZE_KB_IN_RECEIVED_FILE = config.max_log_response_size_kb_in_received_file || 1024;
-    MAX_PLUGIN_RECURSION_DEPTH = config.max_plugin_recursion_depth || 5; 
-    INJECT_PLUGIN_RULES_ON_FIRST_REQUEST = config.inject_plugin_rules_on_first_request !== undefined ? config.inject_plugin_rules_on_first_request : true;
-    MAX_CONTINUATION_DEPTH = config.max_continuation_depth || 5; 
-    CONFORM_CHAT_DISPLAY_MODE = config.conform_chat_display_mode || "detailed_plugin_responses";
-
-    if (!TARGET_PROXY_URL) {
-        console.error("[NodeJS] 错误：config.json 中未配置 'target_proxy_url'。无法启动服务。");
+        console.error(`[NodeJS] 致命错误：无法加载或解析根配置文件 ${path.basename(ROOT_CONFIG_FILE_PATH)}: ${error.message}`);
         process.exit(1);
     }
 }
 
-reassignConfigVariables(); 
+async function discoverAndLoadPlugins() {
+    allDiscoveredPluginsInfo = [];
+    activePlugins = [];
+    systemPluginRulesDescription = "";
+    console.log("[NodeJS] 开始扫描插件目录:", PLUGINS_DIR);
 
-const SEND_LOG_FILE = path.join(__dirname, 'send.json');
-const RECEIVED_LOG_FILE = path.join(__dirname, 'received.json');
-const PLUGINS_RULE_FILE = path.join(__dirname, 'PluginsRule.json');
-const CONFORM_CHAT_FILE = path.join(__dirname, 'conformchat.txt');
+    try {
+        const pluginFolders = await fs.readdir(PLUGINS_DIR, { withFileTypes: true });
+        for (const dirent of pluginFolders) {
+            if (dirent.isDirectory()) {
+                const pluginFolderName = dirent.name;
+                const pluginConfigPath = path.join(PLUGINS_DIR, pluginFolderName, 'config.json');
+                try {
+                    if (!fsSync.existsSync(pluginConfigPath)) {
+                        console.warn(`[NodeJS] 插件 ${pluginFolderName}: 未找到 config.json，已跳过。`);
+                        continue;
+                    }
+                    const pluginConfigFileContent = await fs.readFile(pluginConfigPath, 'utf-8');
+                    const pluginConfig = JSON.parse(pluginConfigFileContent);
 
-let activePlugins = [];
-let allPluginsWithStatus = [];
-let systemPluginRulesDescription = "";
+                    if (!pluginConfig.plugin_id || !pluginConfig.plugin_name_cn || !pluginConfig.executable_name ||
+                        !pluginConfig.placeholder_start || !pluginConfig.placeholder_end) {
+                        console.warn(`[NodeJS] 插件 ${pluginFolderName}: config.json 缺少必要字段，已跳过。`);
+                        continue;
+                    }
+                    
+                    const pluginInfo = {
+                        id: pluginConfig.plugin_id,
+                        name: pluginConfig.plugin_name_cn,
+                        version: pluginConfig.version || "0.0.0",
+                        description: pluginConfig.description || "无描述",
+                        author: pluginConfig.author || "未知",
+                        enabled: pluginConfig.enabled === undefined ? true : pluginConfig.enabled,
+                        is_python_script: pluginConfig.is_python_script === undefined ? true : pluginConfig.is_python_script,
+                        executable_name: pluginConfig.executable_name,
+                        placeholder_start: pluginConfig.placeholder_start,
+                        placeholder_end: pluginConfig.placeholder_end,
+                        accepts_parameters: pluginConfig.accepts_parameters === undefined ? false : pluginConfig.accepts_parameters,
+                        is_internal_signal: pluginConfig.is_internal_signal === undefined ? false : pluginConfig.is_internal_signal,
+                        parameters_schema: pluginConfig.parameters || [],
+                        plugin_specific_config: pluginConfig.plugin_specific_config || {},
+                        folder_name: pluginFolderName
+                    };
+                    allDiscoveredPluginsInfo.push(pluginInfo);
 
+                    if (pluginInfo.enabled) {
+                        activePlugins.push(pluginInfo);
+                    }
+                    // console.log(`[NodeJS] 已加载插件: ${pluginInfo.name} (ID: ${pluginInfo.id}), 启用状态: ${pluginInfo.enabled}`);
+
+                } catch (err) {
+                    console.error(`[NodeJS] 加载插件 ${pluginFolderName} 的 config.json 失败: ${err.message}`);
+                }
+            }
+        }
+
+        if (activePlugins.length > 0) {
+            systemPluginRulesDescription = "你可以使用以下已启用的工具：\n";
+            activePlugins.forEach(p => {
+                systemPluginRulesDescription += `- ${p.name}: ${p.description}\n`;
+            });
+            systemPluginRulesDescription += "请严格按照占位符格式回复以调用工具。";
+        } else {
+            systemPluginRulesDescription = "当前没有已启用的插件工具。";
+        }
+        console.log(`[NodeJS] 插件扫描完成。发现 ${allDiscoveredPluginsInfo.length} 个插件定义，其中 ${activePlugins.length} 个已启用。`);
+
+    } catch (error) {
+        console.error(`[NodeJS] 扫描插件目录 ${PLUGINS_DIR} 失败: ${error.message}`);
+    }
+}
+
+
+// --- Utility Functions ---
 async function initializeConformChatFile() {
     try {
         await fs.writeFile(CONFORM_CHAT_FILE, '', 'utf-8');
-        // console.log(`[NodeJS] ${path.basename(CONFORM_CHAT_FILE)} 已初始化/清空。`); 
     } catch (error) {
-        console.error(`[NodeJS] 错误：初始化 ${path.basename(CONFORM_CHAT_FILE)} 失败:`, error);
+        console.error(`[NodeJS] 初始化 ${path.basename(CONFORM_CHAT_FILE)} 失败:`, error);
     }
 }
 
-const app = express();
-
-app.use(express.json({ limit: '100mb' }));
-app.use(express.text({ limit: '100mb', type: ['text/*', 'application/xml', 'application/javascript'] }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
-app.use(morgan('dev', { stream: { write: (message) => console.log(message.trim()) } }));
-
-async function loadPluginRules() {
-    try {
-        try {
-            await fs.access(PLUGINS_RULE_FILE);
-        } catch (accessError) {
-            if (accessError.code === 'ENOENT') {
-                console.warn(`[NodeJS] ${path.basename(PLUGINS_RULE_FILE)} 未找到，将创建一个空的插件规则文件。`);
-                await fs.writeFile(PLUGINS_RULE_FILE, '[]', 'utf-8');
-                allPluginsWithStatus = [];
-                activePlugins = [];
-                systemPluginRulesDescription = "";
-                return;
-            } else { throw accessError; }
-        }
-        
-        const rulesFileContent = await fs.readFile(PLUGINS_RULE_FILE, 'utf-8');
-        const parsedPlugins = JSON.parse(rulesFileContent);
-
-        if (!Array.isArray(parsedPlugins)) {
-            console.error(`[NodeJS] 错误：${path.basename(PLUGINS_RULE_FILE)} 的内容不是一个有效的JSON数组。插件功能可能受影响。将使用空插件列表。`);
-            allPluginsWithStatus = [];
-            activePlugins = [];
-        } else {
-            allPluginsWithStatus = parsedPlugins.map(p => ({ ...p, enabled: p.enabled === undefined ? true : p.enabled }));
-            activePlugins = allPluginsWithStatus.filter(p => p.enabled);
-        }
-
-        console.log('[NodeJS] 插件规则已加载/重新加载:');
-        if (allPluginsWithStatus.length > 0) {
-            console.log(`  总共 ${allPluginsWithStatus.length} 个插件被定义，其中 ${activePlugins.length} 个已启用。`);
-            
-            systemPluginRulesDescription = "你可以使用以下已启用的工具：\n";
-            if (activePlugins.length > 0) {
-                activePlugins.forEach(plugin => {
-                    systemPluginRulesDescription += `- ${plugin.plugin_name_cn}: ${plugin.rule_description}\n`;
-                });
-                systemPluginRulesDescription += "请严格按照占位符格式回复以调用工具。";
-            } else {
-                systemPluginRulesDescription = "当前没有已启用的插件工具。";
-            }
-        } else {
-            console.log('[NodeJS] 当前没有配置任何插件。');
-            systemPluginRulesDescription = "";
-        }
-    } catch (error) {
-        console.error(`[NodeJS] 警告：加载或解析插件规则文件 ${path.basename(PLUGINS_RULE_FILE)} 时发生错误。插件功能将不可用。`, error.message);
-        allPluginsWithStatus = [];
-        activePlugins = [];
-        systemPluginRulesDescription = "";
-    }
-}
-
-async function logSentRequest(req, reqBodyForLog, originalUrl, sourceIp) {
-    if (!LOG_INTERCEPTED_DATA) return; 
-    const dataToLog = {
+async function logRequest(req, bodyForLog, originalUrl, sourceIp) { // bodyForLog is expected to be an object or a raw string if not JSON
+    if (!rootConfig.log_intercepted_data) return;
+    const data = {
         timestamp_sent_to_target: new Date().toISOString(),
         method: req.method,
-        target_url: TARGET_PROXY_URL + (req.originalUrl || originalUrl), 
+        target_url: rootConfig.target_proxy_url + (req.originalUrl || originalUrl),
         original_url_received_by_listener: originalUrl ? `${req.protocol || 'http'}://${req.headers?.host || 'localhost'}${originalUrl}` : `${req.protocol}://${req.headers.host}${req.originalUrl}`,
         source_ip_of_original_request: sourceIp || req.ip || req.socket?.remoteAddress,
         request_headers_sent_to_target: req.headers,
-        request_body_sent_to_target: reqBodyForLog,
+        request_body_sent_to_target: bodyForLog, // Log the (potentially modified) object or raw string
     };
-    try {
-        await fs.writeFile(SEND_LOG_FILE, JSON.stringify(dataToLog, null, 2));
-    } catch (error) {
-        console.error(`[NodeJS] 错误：写入 ${path.basename(SEND_LOG_FILE)} 失败`, error);
-    }
+    try { await fs.writeFile(SEND_LOG_FILE, JSON.stringify(data, null, 2)); }
+    catch (e) { console.error(`[NodeJS] 写入 ${path.basename(SEND_LOG_FILE)} 失败`, e); }
 }
 
-async function logReceivedResponse(responseFromTarget, resBodyForLog) {
-    if (!LOG_INTERCEPTED_DATA) return; 
-    const dataToLog = {
+async function logResponse(response, body) {
+    if (!rootConfig.log_intercepted_data) return;
+    let logBody = body;
+    if (!rootConfig.log_response_body_in_received_file) {
+        logBody = "[响应体日志已禁用]";
+    } else if (typeof body === 'string' && body.length > (rootConfig.max_log_response_size_kb_in_received_file * 1024)) {
+        logBody = `[响应体过大，已截断，原始大小: ${body.length} bytes] ` + body.substring(0, 200) + "...";
+    } else if (Buffer.isBuffer(body) && body.length > (rootConfig.max_log_response_size_kb_in_received_file * 1024)) {
+        logBody = `[Buffer响应体过大，已截断，原始大小: ${body.length} bytes]`;
+    }
+
+    const data = {
         timestamp_received_from_target: new Date().toISOString(),
-        status_code: responseFromTarget.status,
-        response_headers_from_target: Object.fromEntries(responseFromTarget.headers.entries()),
-        response_body_from_target: resBodyForLog,
+        status_code: response.status,
+        response_headers_from_target: Object.fromEntries(response.headers.entries()),
+        response_body_from_target: logBody,
     };
-    try {
-        await fs.writeFile(RECEIVED_LOG_FILE, JSON.stringify(dataToLog, null, 2));
-    } catch (error) {
-        console.error(`[NodeJS] 错误：写入 ${path.basename(RECEIVED_LOG_FILE)} 失败`, error);
-    }
+    try { await fs.writeFile(RECEIVED_LOG_FILE, JSON.stringify(data, null, 2)); }
+    catch (e) { console.error(`[NodeJS] 写入 ${path.basename(RECEIVED_LOG_FILE)} 失败`, e); }
 }
 
-function executePlugin(plugin, pluginArgument) {
+function executePlugin(pluginInfo, pluginArgument) {
     return new Promise((resolve, reject) => {
-        const executable = plugin.executable_path;
-        const absoluteExecutablePath = path.isAbsolute(executable) ? executable : path.join(__dirname, executable);
+        const pluginScriptPath = path.join(PLUGINS_DIR, pluginInfo.folder_name, pluginInfo.executable_name);
+        
+        let command;
+        let args = [];
+        let options = { encoding: 'utf-8', cwd: path.join(PLUGINS_DIR, pluginInfo.folder_name) }; 
 
-        let commandToExecute;
-        let commandArgs = [];
-        let spawnOptions = {
-            encoding: 'utf-8',
-            shell: false 
-        };
+        if (pluginInfo.is_python_script) {
+            command = 'python'; 
+            args.push(pluginScriptPath);
+        } else { 
+            command = pluginScriptPath;
+            options.shell = (process.platform === "win32" && pluginScriptPath.toLowerCase().endsWith(".bat"));
+        }
 
-        if (plugin.is_python_script) {
-            commandToExecute = 'python';
-            commandArgs.push(absoluteExecutablePath);
-            if (plugin.accepts_parameters && pluginArgument !== null && pluginArgument !== undefined) {
-                commandArgs.push(pluginArgument);
-            }
-        } else {
-            if (process.platform === "win32" && (executable.toLowerCase().endsWith(".bat") || executable.toLowerCase().endsWith(".cmd"))) {
-                commandToExecute = `"${absoluteExecutablePath}"`; 
-                if (plugin.accepts_parameters && pluginArgument !== null && pluginArgument !== undefined) {
-                    if (typeof pluginArgument === 'string' && pluginArgument.includes(' ')) {
-                        commandToExecute += ` "${pluginArgument.replace(/"/g, '""')}"`; 
-                    } else if (pluginArgument !== null && pluginArgument !== undefined){
-                        commandToExecute += ` ${pluginArgument}`;
-                    }
-                }
-                spawnOptions.shell = true;
-            } else { 
-                commandToExecute = absoluteExecutablePath;
-                if (plugin.accepts_parameters && pluginArgument !== null && pluginArgument !== undefined) {
-                    commandArgs.push(pluginArgument);
-                }
-            }
+        if (pluginInfo.accepts_parameters && pluginArgument !== null && pluginArgument !== undefined) {
+            args.push(String(pluginArgument)); 
         }
         
-        console.log(`[NodeJS] 正在执行插件: ${plugin.plugin_name_cn} (ID: ${plugin.plugin_id})`);
-        if (spawnOptions.shell) {
-            console.log(`  Shell Command: ${commandToExecute}`);
-        } else {
-            console.log(`  Cmd: ${commandToExecute}`);
-            console.log(`  Args: ${JSON.stringify(commandArgs)}`);
-        }
+        console.log(`[NodeJS] 执行插件: ${pluginInfo.name} (ID: ${pluginInfo.id})`);
+        // console.log(`  Cmd: ${command}, Args: ${JSON.stringify(args)}, CWD: ${options.cwd}, Shell: ${!!options.shell}`);
 
-        const childProcess = spawnOptions.shell ? 
-                             spawn(commandToExecute, [], spawnOptions) : 
-                             spawn(commandToExecute, commandArgs, spawnOptions);
+        const child = spawn(command, args, options);
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', (data) => stdout += data);
+        child.stderr.on('data', (data) => stderr += data);
 
-        let stdoutData = '';
-        let stderrData = '';
-
-        childProcess.stdout.on('data', (data) => { stdoutData += data.toString(); });
-        childProcess.stderr.on('data', (data) => { stderrData += data.toString(); });
-
-        childProcess.on('close', (code) => {
+        child.on('close', (code) => {
             if (code === 0) {
-                console.log(`[NodeJS] 插件 ${plugin.executable_path} 执行成功.`);
-                resolve(stdoutData.trim());
+                // console.log(`[NodeJS] 插件 ${pluginInfo.name} 执行成功.`);
+                resolve(stdout.trim());
             } else {
-                console.error(`[NodeJS] 插件 ${plugin.executable_path} 执行失败 (退出码: ${code}).`);
-                if (stderrData) console.error(`[NodeJS] 插件错误输出: ${stderrData.trim()}`);
-                reject(new Error(`插件 ${plugin.executable_path} 执行失败. ${stderrData.trim()}`));
+                console.error(`[NodeJS] 插件 ${pluginInfo.name} 执行失败 (退出码: ${code}).`);
+                if (stderr) console.error(`[NodeJS] 插件错误输出: ${stderr.trim()}`);
+                reject(new Error(`插件 ${pluginInfo.name} 执行失败. ${stderr.trim() || `退出码: ${code}`}`));
             }
         });
-        childProcess.on('error', (err) => {
-            console.error(`[NodeJS] 启动插件 ${plugin.executable_path} 失败 (spawn error):`, err);
-            reject(new Error(`启动插件 ${plugin.executable_path} 失败: ${err.message}`));
+        child.on('error', (err) => {
+            console.error(`[NodeJS] 启动插件 ${pluginInfo.name} 失败:`, err);
+            reject(new Error(`启动插件 ${pluginInfo.name} 失败: ${err.message}`));
         });
     });
 }
 
+
+// --- Main Request Handling Logic ---
 async function handleRequestAndPlugins(req, res, originalRequestData, recursionDepth = 0, continuationDepth = 0) {
     if (recursionDepth === 0 && continuationDepth === 0) {
         await initializeConformChatFile();
     }
 
-    if (recursionDepth > MAX_PLUGIN_RECURSION_DEPTH) {
-        console.warn(`[NodeJS] 插件调用达到最大深度 (${MAX_PLUGIN_RECURSION_DEPTH})，停止进一步调用。`);
-        if (res && !res.headersSent) {
-            try {
-                const conformChatContent = await fs.readFile(CONFORM_CHAT_FILE, 'utf-8');
-                const finalContentToSend = (conformChatContent.trim() ? conformChatContent.trimEnd() : "[系统消息：无有效内容]") + "\n\n[系统消息：已达到最大插件处理深度，对话可能不完整]";
-                const errorResponse = {
-                    id: "error-recursion-limit-" + Date.now(),
-                    object: "chat.completion",
-                    created: Math.floor(Date.now() / 1000),
-                    model: originalRequestData.body?.model || "unknown_model_error",
-                    choices: [{ index: 0, message: { role: "assistant", content: finalContentToSend }, finish_reason: "length" }],
-                };
-                res.status(200).json(errorResponse); 
-                await initializeConformChatFile(); 
-            } catch (e) {
-                console.error("[NodeJS] 读取 conformchat 文件失败（在插件递归超限时）:", e);
-                res.status(500).json({ error: "Plugin recursion limit reached, error reading accumulated content." });
-            }
-        }
-        return;
-    }
-    if (continuationDepth > MAX_CONTINUATION_DEPTH) { 
-        console.warn(`[NodeJS] 继续回复达到最大深度 (${MAX_CONTINUATION_DEPTH})，停止进一步调用。`);
-        if (res && !res.headersSent) {
-             try {
-                const conformChatContent = await fs.readFile(CONFORM_CHAT_FILE, 'utf-8');
-                const finalContentToSend = (conformChatContent.trim() ? conformChatContent.trimEnd() : "[系统消息：无有效内容]") + "\n\n[系统消息：已达到最大继续回复深度，对话可能不完整]";
-                const errorResponse = {
-                    id: "error-continuation-limit-" + Date.now(),
-                    object: "chat.completion",
-                    created: Math.floor(Date.now() / 1000),
-                    model: originalRequestData.body?.model || "unknown_model_error",
-                    choices: [{ index: 0, message: { role: "assistant", content: finalContentToSend }, finish_reason: "length" }],
-                };
-                res.status(200).json(errorResponse);
-                await initializeConformChatFile(); 
-            } catch (e) {
-                console.error("[NodeJS] 读取 conformchat 文件失败（在继续回复超限时）:", e);
-                res.status(500).json({ error: "Continuation recursion limit reached, error reading accumulated content." });
-            }
-        }
+    const MAX_RECURSION = rootConfig.max_plugin_recursion_depth || 5;
+    const MAX_CONTINUATION = rootConfig.max_continuation_depth || 5;
+
+    if (recursionDepth > MAX_RECURSION || continuationDepth > MAX_CONTINUATION) {
+        const limitType = recursionDepth > MAX_RECURSION ? "插件递归" : "继续回复";
+        console.warn(`[NodeJS] ${limitType}达到最大深度，停止调用。`);
+        const conformContent = await fs.readFile(CONFORM_CHAT_FILE, 'utf-8').catch(() => "");
+        const finalContent = (conformContent.trim() || "[无内容]") + `\n\n[系统消息：已达到最大${limitType}深度]`;
+        const errorResponse = {
+            id: `error-${limitType.replace(" ", "-")}-limit-${Date.now()}`, object: "chat.completion",
+            choices: [{ message: { role: "assistant", content: finalContent }, finish_reason: "length" }],
+            model: (typeof originalRequestData.body === 'object' && originalRequestData.body?.model) ? originalRequestData.body.model : "unknown_model_limit"
+        };
+        if (res && !res.headersSent) res.status(200).json(errorResponse);
+        await initializeConformChatFile();
         return;
     }
 
-    const currentDisplayMode = CONFORM_CHAT_DISPLAY_MODE; 
-    const targetUrl = TARGET_PROXY_URL + originalRequestData.url;
-    let requestBodyForForwarding = originalRequestData.body;
+    const targetUrl = rootConfig.target_proxy_url + originalRequestData.url;
+    
+    // --- Refined Request Body Handling for Injection and Logging ---
+    let currentRequestBodyObject; // This will be an object if original body is JSON or becomes JSON
+    let originalBodyWasNonJsonString = false;
 
-    let parsedBody;
-    if (typeof requestBodyForForwarding === 'string') {
-        try { parsedBody = JSON.parse(requestBodyForForwarding); } 
-        catch (e) { parsedBody = { messages: [] }; }
-    } else if (typeof requestBodyForForwarding === 'object' && requestBodyForForwarding !== null) {
-        parsedBody = { ...requestBodyForForwarding }; 
-        if (!parsedBody.messages) parsedBody.messages = [];
+    if (typeof originalRequestData.body === 'string') {
+        try {
+            currentRequestBodyObject = JSON.parse(originalRequestData.body);
+            // Deep clone to prevent modification of originalRequestData.body if it's parsed from string
+            currentRequestBodyObject = JSON.parse(JSON.stringify(currentRequestBodyObject));
+        } catch (e) {
+            console.warn("[NodeJS] 初始请求体是字符串但非有效JSON，无法注入规则:", originalRequestData.body.substring(0,100));
+            currentRequestBodyObject = null; // Indicate it's not a modifiable JSON object
+            originalBodyWasNonJsonString = true;
+        }
+    } else if (typeof originalRequestData.body === 'object' && originalRequestData.body !== null) {
+        currentRequestBodyObject = JSON.parse(JSON.stringify(originalRequestData.body)); // Deep copy
     } else {
-        parsedBody = { messages: [] };
+        currentRequestBodyObject = { messages: [] }; // Default for null or other types, to allow injection
     }
-    
-    if (INJECT_PLUGIN_RULES_ON_FIRST_REQUEST && systemPluginRulesDescription && activePlugins.length > 0 && parsedBody.messages && parsedBody.messages.length > 0) {
-        const firstUserMessageIndex = parsedBody.messages.findIndex(m => m.role === 'user');
-        const hasSystemPluginRule = parsedBody.messages.some(m => m.role === 'system' && m.content && m.content.startsWith("你可以使用以下已启用的工具："));
-        if (firstUserMessageIndex === 0 && !hasSystemPluginRule) { 
-             parsedBody.messages.unshift({ role: "system", content: systemPluginRulesDescription });
-             console.log("[NodeJS] 已向请求中注入启用的插件规则描述 (在首条用户消息前)。");
-        } else if (firstUserMessageIndex > 0 && !hasSystemPluginRule) {
-            let injected = false;
-            for (let i = 0; i < firstUserMessageIndex; i++) {
-                if (parsedBody.messages[i].role === 'system') {
-                    parsedBody.messages.splice(i + 1, 0, { role: "system", content: systemPluginRulesDescription });
-                    injected = true;
-                    console.log("[NodeJS] 已向请求中注入启用的插件规则描述 (在现有系统消息后)。");
-                    break;
-                }
-            }
-            if (!injected) { 
-                 parsedBody.messages.splice(firstUserMessageIndex, 0, { role: "system", content: systemPluginRulesDescription });
-                 console.log("[NodeJS] 已向请求中注入启用的插件规则描述 (在用户消息前)。");
-            }
-        }
-    }
-    
-    const finalBodyToSend = JSON.stringify(parsedBody);
-    if (LOG_INTERCEPTED_DATA) { await logSentRequest(req, parsedBody, originalRequestData.url, originalRequestData.sourceIp); }
 
-    let responseFromTarget;
-    let responseBodyBuffer;
-    let resBodyForLog = null;
-
-    try {
-        console.log(`[NodeJS] (${currentDisplayMode}) 转发请求 (递归 ${recursionDepth}, 继续 ${continuationDepth}): ${originalRequestData.method} ${targetUrl}`);
-        responseFromTarget = await fetch(targetUrl, {
-            method: originalRequestData.method,
-            headers: originalRequestData.headers,
-            body: (originalRequestData.method !== 'GET' && originalRequestData.method !== 'HEAD') ? finalBodyToSend : undefined,
-        });
-
-        try { responseBodyBuffer = await responseFromTarget.buffer(); } 
-        catch (bufferError) {
-            console.error(`[NodeJS] 读取目标响应体为Buffer时出错: ${bufferError.message}`);
-            resBodyForLog = "[Error reading response body from target]";
-            if (LOG_INTERCEPTED_DATA) await logReceivedResponse(responseFromTarget, resBodyForLog);
-            if (res && !res.headersSent) res.status(responseFromTarget.status || 500).json({ error: '读取目标服务器响应体失败', details: bufferError.message });
-            return;
-        }
+    // Inject plugin rules if applicable, modifying 'currentRequestBodyObject'
+    if (currentRequestBodyObject && // Ensure it's a valid object for modification
+        rootConfig.inject_plugin_rules_on_first_request && 
+        systemPluginRulesDescription && 
+        activePlugins.length > 0 &&
+        currentRequestBodyObject.messages // And it has a messages array
+    ) {
+        const firstUserMsgIdx = currentRequestBodyObject.messages.findIndex(m => m.role === 'user');
+        const hasRuleInjected = currentRequestBodyObject.messages.some(m => m.role === 'system' && m.content && m.content.startsWith("你可以使用以下已启用的工具："));
         
+        if (firstUserMsgIdx !== -1 && !hasRuleInjected) {
+             currentRequestBodyObject.messages.splice(firstUserMsgIdx, 0, { role: "system", content: systemPluginRulesDescription });
+             console.log("[NodeJS] 已注入插件规则描述。");
+        }
+    }
+    // --- End Refined Request Body Handling ---
+
+    // Log the request body that will be sent to the target
+    // If original was non-JSON string and couldn't be modified, log that original string. Otherwise, log the object.
+    if (rootConfig.log_intercepted_data) {
+        await logRequest(req, 
+            currentRequestBodyObject === null ? originalRequestData.body : currentRequestBodyObject, 
+            originalRequestData.url, 
+            originalRequestData.sourceIp
+        );
+    }
+
+    // Prepare the body for the fetch call
+    // If currentRequestBodyObject is null, it means original body was a non-JSON string and should be sent as is.
+    // Otherwise, stringify the (potentially modified) object.
+    const finalBodyForFetch = currentRequestBodyObject !== null ? JSON.stringify(currentRequestBodyObject) : originalRequestData.body;
+    
+    let responseFromTarget, responseBodyBuffer, aiResponseMessageContent = null, aiFullResponseObject = null;
+    try {
+        console.log(`[NodeJS] 转发请求 (递归 ${recursionDepth}, 继续 ${continuationDepth}): ${originalRequestData.method} ${targetUrl}`);
+        responseFromTarget = await fetch(targetUrl, {
+            method: originalRequestData.method, headers: originalRequestData.headers,
+            body: (originalRequestData.method !== 'GET' && originalRequestData.method !== 'HEAD') ? finalBodyForFetch : undefined,
+        });
+        responseBodyBuffer = await responseFromTarget.buffer();
         const contentType = responseFromTarget.headers.get('content-type') || '';
-        let aiResponseMessageContent = null; 
-        let aiFullResponseObject = null;    
 
         if (contentType.includes('application/json')) {
-            try {
-                const responseJsonString = responseBodyBuffer.toString('utf-8');
-                aiFullResponseObject = JSON.parse(responseJsonString);
-                if (aiFullResponseObject.choices && aiFullResponseObject.choices[0] && aiFullResponseObject.choices[0].message && aiFullResponseObject.choices[0].message.content) {
-                    aiResponseMessageContent = aiFullResponseObject.choices[0].message.content;
-                }
-                else if (aiFullResponseObject.content && Array.isArray(aiFullResponseObject.content) && aiFullResponseObject.content[0] && aiFullResponseObject.content[0].type === 'text') { 
-                    aiResponseMessageContent = aiFullResponseObject.content[0].text;
-                }
-                else if (aiFullResponseObject.message && aiFullResponseObject.message.content) { 
-                     aiResponseMessageContent = aiFullResponseObject.message.content;
-                }
-                resBodyForLog = aiFullResponseObject; 
-            } catch (e) {
-                console.warn('[NodeJS] AI响应是JSON但解析或提取content失败:', e.message);
-                const rawText = responseBodyBuffer.toString('utf-8');
-                resBodyForLog = "[Could not parse JSON response body or extract content, logging as text]\n" + rawText;
-                aiResponseMessageContent = rawText; 
-            }
+            const responseJsonString = responseBodyBuffer.toString('utf-8');
+            aiFullResponseObject = JSON.parse(responseJsonString);
+            aiResponseMessageContent = aiFullResponseObject?.choices?.[0]?.message?.content ||
+                                     aiFullResponseObject?.content?.[0]?.text || 
+                                     aiFullResponseObject?.message?.content;   
         } else if (contentType.includes('text/')) {
             aiResponseMessageContent = responseBodyBuffer.toString('utf-8');
-            resBodyForLog = aiResponseMessageContent;
-        } else if (responseBodyBuffer.length > 0) {
-             resBodyForLog = `[Non-text/JSON response body, size: ${responseBodyBuffer.length} bytes, content-type: ${contentType}]`;
-        } else {
-            resBodyForLog = "[Empty response body from target]";
         }
-        
-        if (LOG_RESPONSE_BODY_IN_RECEIVED_FILE && typeof resBodyForLog === 'string' && responseBodyBuffer.length > (MAX_LOG_RESPONSE_SIZE_KB_IN_RECEIVED_FILE * 1024)) {
-            const maxLogSizeBytes = MAX_LOG_RESPONSE_SIZE_KB_IN_RECEIVED_FILE * 1024;
-            resBodyForLog = `[Response body truncated, size: ${responseBodyBuffer.length} bytes, exceeds max_log_size: ${maxLogSizeBytes} bytes]`;
-            if (contentType.includes('application/json') || contentType.includes('text/')) {
-                 try { resBodyForLog += `\nPartial content:\n${responseBodyBuffer.slice(0, maxLogSizeBytes).toString('utf-8')}`; } catch (e) { /* ignore */ }
-            }
-        } else if (!LOG_RESPONSE_BODY_IN_RECEIVED_FILE && typeof resBodyForLog !== 'string' && resBodyForLog !== null) {
-            resBodyForLog = "[Response body logging disabled in received.json, but it was an object]";
-        } else if (!LOG_RESPONSE_BODY_IN_RECEIVED_FILE) {
-            resBodyForLog = "[Response body logging disabled in received.json]";
-        }
-        if (LOG_INTERCEPTED_DATA) { await logReceivedResponse(responseFromTarget, resBodyForLog); }
+        if (rootConfig.log_intercepted_data) { await logResponse(responseFromTarget, aiFullResponseObject || aiResponseMessageContent || responseBodyBuffer); }
 
         let pluginMatchedAndProcessed = false;
         if (aiResponseMessageContent && activePlugins.length > 0) {
-            for (const plugin of activePlugins) { 
-                if (!plugin.enabled) continue; 
-
-                const placeholderStartEsc = plugin.placeholder_start.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const placeholderEndEsc = plugin.placeholder_end.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regexPattern = plugin.accepts_parameters ? `(.*?)` : ''; 
-                const regex = new RegExp(
-                    `${placeholderStartEsc}${regexPattern}${placeholderEndEsc}`,
-                    's' 
-                );
+            for (const plugin of activePlugins) { // plugin is from activePlugins (contains full info)
+                const regex = new RegExp(`${plugin.placeholder_start.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(.*?)${plugin.placeholder_end.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 's');
                 const match = aiResponseMessageContent.match(regex);
 
                 if (match) {
-                    pluginMatchedAndProcessed = true; 
+                    pluginMatchedAndProcessed = true;
                     const pluginArgument = plugin.accepts_parameters && match[1] ? match[1].trim() : null;
-                    
                     const textBeforePlaceholder = aiResponseMessageContent.substring(0, match.index).trimEnd();
                     
-                    if (textBeforePlaceholder && !(currentDisplayMode === "final_ai_response_only" && recursionDepth > 0)) {
-                         await fs.appendFile(CONFORM_CHAT_FILE, textBeforePlaceholder + "\n", 'utf-8');
-                    }
-                    
-                    console.log(`[NodeJS] 检测到已启用插件调用: ${plugin.plugin_name_cn} (ID: ${plugin.plugin_id})`);
-                    
-                    if (plugin.is_internal_signal && plugin.plugin_id === "continue_ai_reply") {
-                        console.log("[NodeJS] '继续回复'信号被触发。");
-                        const currentAiMessage = aiFullResponseObject?.choices?.[0]?.message || 
-                                                 (aiFullResponseObject?.content?.[0]?.text ? {role: "assistant", content: aiFullResponseObject.content[0].text} : null) ||
-                                                 { role: "assistant", content: aiResponseMessageContent }; 
+                    if (textBeforePlaceholder) { await fs.appendFile(CONFORM_CHAT_FILE, textBeforePlaceholder + "\n", 'utf-8'); }
+                    console.log(`[NodeJS] 检测到插件调用: ${plugin.name}`);
 
-                        const newMessagesForContinuation = [...(parsedBody.messages || []), currentAiMessage];
-                        const continuationPrompt = pluginArgument || "请继续生成回复的下一部分内容。";
-                        newMessagesForContinuation.push({ role: "system", content: `[系统提示] ${continuationPrompt} (这是一个自动继续请求，请接着上一条回复输出)` });
+                    // Base for next request's messages: currentRequestBodyObject (if it was JSON-like)
+                    let baseMessagesForNextRequest = (currentRequestBodyObject && currentRequestBodyObject.messages) ? [...currentRequestBodyObject.messages] : [];
+                    
+                    // AI's message that triggered the plugin
+                    const aiMessageThatTriggeredPlugin = aiFullResponseObject?.choices?.[0]?.message || 
+                                                       (aiFullResponseObject?.content?.[0]?.text ? {role: "assistant", content: aiFullResponseObject.content[0].text} : null) || 
+                                                       { role: "assistant", content: aiResponseMessageContent };
+
+
+                    if (plugin.is_internal_signal && plugin.id === "continue_ai_reply") {
+                        baseMessagesForNextRequest.push(aiMessageThatTriggeredPlugin);
+                        baseMessagesForNextRequest.push({ role: "system", content: `[系统提示] ${pluginArgument || "请继续。"}` });
                         
-                        const nextRequestDataForContinuation = {
-                            ...originalRequestData, 
-                            body: { ...parsedBody, messages: newMessagesForContinuation }, 
-                        };
-                        return await handleRequestAndPlugins(req, res, nextRequestDataForContinuation, recursionDepth, continuationDepth + 1);
-                    }
-                    else { 
+                        const nextBodyObject = { ...(currentRequestBodyObject || {}), messages: baseMessagesForNextRequest };
+                        const nextReqData = { ...originalRequestData, body: JSON.stringify(nextBodyObject) };
+                        return await handleRequestAndPlugins(req, res, nextReqData, recursionDepth, continuationDepth + 1);
+                    } else {
                         try {
                             const pluginResult = await executePlugin(plugin, pluginArgument);
-                            
-                            if (currentDisplayMode === "detailed_plugin_responses") {
-                                const formattedPluginResult = `\n\n\`\`\`\n[插件 ${plugin.plugin_name_cn} 执行结果]:\n${pluginResult}\n\`\`\`\n\n`;
-                                await fs.appendFile(CONFORM_CHAT_FILE, formattedPluginResult, 'utf-8');
-                            } else if (currentDisplayMode === "compact_plugin_chain") {
-                                const conformContentSoFar = await fs.readFile(CONFORM_CHAT_FILE, 'utf-8');
-                                if (conformContentSoFar.trim() && !conformContentSoFar.endsWith('\n\n') && textBeforePlaceholder) { 
-                                     await fs.appendFile(CONFORM_CHAT_FILE, "\n", 'utf-8'); 
-                                }
+                            const displayMode = rootConfig.conform_chat_display_mode || "detailed_plugin_responses";
+                            if (displayMode === "detailed_plugin_responses") {
+                                await fs.appendFile(CONFORM_CHAT_FILE, `\n\n\`\`\`\n[插件 ${plugin.name} 执行结果]:\n${pluginResult}\n\`\`\`\n\n`, 'utf-8');
                             }
-
-                            const currentAiMessageForHistory = aiFullResponseObject?.choices?.[0]?.message ||
-                                                            (aiFullResponseObject?.content?.[0]?.text ? {role: "assistant", content: aiFullResponseObject.content[0].text} : null) ||
-                                                            { role: "assistant", content: aiResponseMessageContent };
-
-                            const newMessagesForPlugin = [...(parsedBody.messages || []), currentAiMessageForHistory];
-                            // ===================== ROLE CHANGE HERE (SUCCESS) =====================
-                            newMessagesForPlugin.push({ 
-                                role: "user", // MODIFIED FROM "system"
-                                content: `[插件 ${plugin.plugin_name_cn} 执行结果]:\n${pluginResult}` 
-                            });
-                            // ======================================================================
-
-                            const newRequestBodyForPlugin = { ...parsedBody, messages: newMessagesForPlugin };
-                            const nextRequestData = { ...originalRequestData, body: newRequestBodyForPlugin };
                             
-                            console.log(`[NodeJS] 插件(ID: ${plugin.plugin_id})返回结果，准备使用新消息再次请求AI...`);
-                            return await handleRequestAndPlugins(req, res, nextRequestData, recursionDepth + 1, 0); 
-
+                            baseMessagesForNextRequest.push(aiMessageThatTriggeredPlugin);
+                            baseMessagesForNextRequest.push({ role: "user", content: `[插件 ${plugin.name} 执行结果]:\n${pluginResult}` });
+                            
+                            const nextBodyObject = { ...(currentRequestBodyObject || {}), messages: baseMessagesForNextRequest };
+                            const nextReqData = { ...originalRequestData, body: JSON.stringify(nextBodyObject) };
+                            return await handleRequestAndPlugins(req, res, nextReqData, recursionDepth + 1, 0);
                         } catch (pluginError) {
-                            console.error(`[NodeJS] 插件 ${plugin.plugin_name_cn} (ID: ${plugin.plugin_id}) 执行出错: ${pluginError.message}`);
+                            console.error(`[NodeJS] 插件 ${plugin.name} 执行出错: ${pluginError.message}`);
+                            await fs.appendFile(CONFORM_CHAT_FILE, `\n\n\`\`\`\n[插件执行错误: ${plugin.name}]\n${pluginError.message}\n\`\`\`\n\n`, 'utf-8');
                             
-                            if (currentDisplayMode === "detailed_plugin_responses") {
-                                const errorResultForConform = `\n\n\`\`\`\n[插件执行错误: ${plugin.plugin_name_cn}]\n${pluginError.message}\n\`\`\`\n\n`;
-                                await fs.appendFile(CONFORM_CHAT_FILE, errorResultForConform, 'utf-8');
-                            }
+                            baseMessagesForNextRequest.push(aiMessageThatTriggeredPlugin);
+                            baseMessagesForNextRequest.push({ role: "user", content: `[系统错误] 插件 '${plugin.name}' 执行失败: ${pluginError.message}. 请尝试其他方法。` });
 
-                            const currentAiMessageForHistory = aiFullResponseObject?.choices?.[0]?.message ||
-                                                            (aiFullResponseObject?.content?.[0]?.text ? {role: "assistant", content: aiFullResponseObject.content[0].text} : null) ||
-                                                            { role: "assistant", content: aiResponseMessageContent };
-
-                            const newMessagesAfterPluginError = [...(parsedBody.messages || []), currentAiMessageForHistory];
-                            // ===================== ROLE CHANGE HERE (ERROR) =======================
-                            newMessagesAfterPluginError.push({ 
-                                role: "user", // MODIFIED FROM "system"
-                                content: `[系统错误] 插件 '${plugin.plugin_name_cn}' (ID: ${plugin.plugin_id}) 执行失败: ${pluginError.message}. 请尝试其他方法或告知用户此工具暂时不可用。` 
-                            });
-                            // ======================================================================
-                            
-                            const nextRequestDataOnError = { ...originalRequestData, body: { ...parsedBody, messages: newMessagesAfterPluginError }};
-                            console.log("[NodeJS] 插件执行失败，将错误信息反馈给AI并重新请求...");
-                            return await handleRequestAndPlugins(req, res, nextRequestDataOnError, recursionDepth + 1, 0);
+                            const nextBodyObject = { ...(currentRequestBodyObject || {}), messages: baseMessagesForNextRequest };
+                            const nextReqDataErr = { ...originalRequestData, body: JSON.stringify(nextBodyObject) };
+                            return await handleRequestAndPlugins(req, res, nextReqDataErr, recursionDepth + 1, 0);
                         }
-                    }
+                    } 
                 } 
             } 
         } 
 
         if (!pluginMatchedAndProcessed) {
-            if (aiResponseMessageContent) { 
-                if (currentDisplayMode === "final_ai_response_only") {
-                    await fs.writeFile(CONFORM_CHAT_FILE, aiResponseMessageContent.trimEnd(), 'utf-8');
-                    console.log(`[NodeJS] (Mode 3) ConformChat updated with final AI response.`);
-                } else {
-                    const currentConformContent = await fs.readFile(CONFORM_CHAT_FILE, 'utf-8');
-                    let prefix = "";
-                    if (currentConformContent.trim()) { 
-                        if (!currentConformContent.endsWith('\n\n') && !currentConformContent.endsWith('\n')) {
-                            prefix = "\n\n";
-                        } else if (!currentConformContent.endsWith('\n\n') && currentConformContent.endsWith('\n')) {
-                            prefix = "\n";
-                        }
-                    }
-                    await fs.appendFile(CONFORM_CHAT_FILE, prefix + aiResponseMessageContent.trimEnd(), 'utf-8');
-                     console.log(`[NodeJS] (Mode ${currentDisplayMode === "detailed_plugin_responses" ? 1 : 2}) Final AI response appended to ConformChat.`);
-                }
+            if (aiResponseMessageContent) {
+                 const currentConform = await fs.readFile(CONFORM_CHAT_FILE, 'utf-8').catch(() => "");
+                 let prefix = (currentConform.trim() && !currentConform.endsWith('\n\n') && !currentConform.endsWith('\n')) ? "\n\n" : (currentConform.trim() && !currentConform.endsWith('\n\n') ? "\n" : "");
+                 await fs.appendFile(CONFORM_CHAT_FILE, prefix + aiResponseMessageContent.trimEnd(), 'utf-8');
             }
-
             if (res && !res.headersSent) {
-                let finalConformChatContent = "";
-                try {
-                    finalConformChatContent = (await fs.readFile(CONFORM_CHAT_FILE, 'utf-8')).trim();
-                    await initializeConformChatFile(); 
-                } catch (readError) {
-                    console.error("[NodeJS] 读取conformchat文件失败（在发送最终响应时）:", readError);
-                    if (responseBodyBuffer && responseBodyBuffer.length > 0 && contentType.includes('application/json')) { 
-                        console.warn("[NodeJS] conformchat读取失败，将尝试发送原始AI JSON响应。");
-                        res.status(responseFromTarget.status);
-                        responseFromTarget.headers.forEach((value, name) => {
-                            if (!['content-encoding', 'transfer-encoding', 'connection', 'content-length'].includes(name.toLowerCase())) {
-                                res.setHeader(name, value);
-                            }
-                        });
-                        if (contentType) res.setHeader('Content-Type', contentType); 
-                        res.send(responseBodyBuffer); 
-                        return; 
-                    } else {
-                        res.status(500).json({ error: 'Conformchat processing failed and no original response to send.' });
-                        return; 
-                    }
-                }
+                const finalConformContent = (await fs.readFile(CONFORM_CHAT_FILE, 'utf-8')).trim() || "[系统消息：AI未返回有效内容]";
+                await initializeConformChatFile();
                 
-                let finalResponseToClient;
-                const baseResponseObject = aiFullResponseObject || {
-                    id: "conformchat-" + Date.now(),
-                    object: "chat.completion",
-                    created: Math.floor(Date.now() / 1000),
-                    model: parsedBody.model || "unknown_model_conformchat",
-                    choices: [{ index: 0, message: {}, finish_reason: "stop" }],
-                };
+                let finalResponseToClientObject = JSON.parse(JSON.stringify(aiFullResponseObject || { // Deep copy base
+                    id: `conformchat-${Date.now()}`, object: "chat.completion", created: Math.floor(Date.now()/1000),
+                    model: (currentRequestBodyObject && currentRequestBodyObject.model) ? currentRequestBodyObject.model : "unknown_model_conform",
+                    choices: [{ index: 0, message: {}, finish_reason: "stop" }]
+                }));
 
-                finalResponseToClient = JSON.parse(JSON.stringify(baseResponseObject)); 
-
-                if (!finalResponseToClient.choices || !finalResponseToClient.choices[0]) { 
-                    finalResponseToClient.choices = [{ index: 0, message: {}, finish_reason: "stop" }];
-                }
-                if (!finalResponseToClient.choices[0].message) {
-                    finalResponseToClient.choices[0].message = {};
-                }
-
-                finalResponseToClient.choices[0].message.role = "assistant";
-                finalResponseToClient.choices[0].message.content = finalConformChatContent || "[系统消息：AI未返回有效内容]";
-                finalResponseToClient.choices[0].finish_reason = aiFullResponseObject?.choices?.[0]?.finish_reason || "stop";
-
-                if (finalResponseToClient.usage && finalConformChatContent !== aiResponseMessageContent) {
-                    console.warn("[NodeJS] Conformchat内容已替换原始AI回复，响应中的 'usage' 统计可能不再准确。");
-                }
+                if (!finalResponseToClientObject.choices || !finalResponseToClientObject.choices[0]) finalResponseToClientObject.choices = [{ index: 0, message: {}, finish_reason: "stop" }];
+                if (!finalResponseToClientObject.choices[0].message) finalResponseToClientObject.choices[0].message = {};
+                finalResponseToClientObject.choices[0].message.role = "assistant";
+                finalResponseToClientObject.choices[0].message.content = finalConformContent;
                 
-                console.log("[NodeJS] 插件链处理完毕，发送conformchat的聚合内容给客户端。");
-                res.status(responseFromTarget.status).json(finalResponseToClient); 
-            } else if (res && res.headersSent) {
-                console.log("[NodeJS] 响应头已发送，无法再次发送最终响应。conformchat内容已生成但未发送。");
-                await initializeConformChatFile(); 
+                res.status(responseFromTarget.status).json(finalResponseToClientObject);
             }
         }
-
     } catch (error) {
-        console.error(`[NodeJS] (${currentDisplayMode}) 转发到 ${targetUrl} 失败或处理响应时出错 (递归 ${recursionDepth}, 继续 ${continuationDepth}):`, error.message, error.stack);
-        const errorResBodyForLog = `[Error during request forwarding or response processing: ${error.message}]`;
-        if (LOG_INTERCEPTED_DATA) {
-            const mockErrorResponse = { status: 502, headers: new Map() }; 
-            await logReceivedResponse(mockErrorResponse, errorResBodyForLog);
-        }
+        console.error(`[NodeJS] 转发或处理响应时出错: ${error.message}`, error.stack);
+        if (rootConfig.log_intercepted_data) await logResponse({status: 502, headers: new Map()}, `[错误: ${error.message}]`);
         if (res && !res.headersSent) {
-            const errorResponseToClient = {
+             const errorResponseToClient = {
                 id: "error-proxy-" + Date.now(),
                 object: "error",
                 message: "代理转发或响应处理失败",
                 details: error.message,
                 target: targetUrl,
+                model: (currentRequestBodyObject && currentRequestBodyObject.model) ? currentRequestBodyObject.model : "unknown_model_proxy_error",
                 choices: [{ index: 0, message: { role: "assistant", content: `[系统错误] 代理转发或处理到 ${targetUrl} 的请求失败: ${error.message}` }, finish_reason: "error" }]
             };
             res.status(502).json(errorResponseToClient);
-        } else if (res) {
-            res.end(); 
         }
-        await initializeConformChatFile(); 
+        await initializeConformChatFile();
     }
 }
 
-app.get('/api/plugins', async (req, res) => { 
+
+// --- Express App Setup ---
+const app = express();
+app.use(express.json({ limit: '100mb' }));
+app.use(express.text({ limit: '100mb', type: ['text/*', 'application/xml', 'application/javascript'] }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+app.use(morgan('dev', { stream: { write: (msg) => console.log(msg.trim()) } }));
+
+// --- API Endpoints for Frontend ---
+app.get('/api/system-config', (req, res) => res.json(rootConfig || {}));
+app.post('/api/system-config', async (req, res) => {
     try {
-        if (!allPluginsWithStatus || !Array.isArray(allPluginsWithStatus)) {
-            console.warn("[NodeJS] /api/plugins: allPluginsWithStatus 无效, 尝试重新加载规则...");
-            await loadPluginRules(); 
+        const newConfig = req.body;
+        await fs.writeFile(ROOT_CONFIG_FILE_PATH, JSON.stringify(newConfig, null, 2), 'utf-8');
+        loadRootConfig(); 
+        await discoverAndLoadPlugins(); 
+        res.json({ message: '系统配置已更新！部分更改需重启服务生效。' });
+    } catch (e) { res.status(500).json({ message: '保存系统配置失败', error: e.message }); }
+});
+
+app.get('/api/plugins', (req, res) => res.json(allDiscoveredPluginsInfo || []));
+
+app.get('/api/plugin-config/:plugin_id', async (req, res) => {
+    const pluginId = req.params.plugin_id;
+    const pluginInfo = allDiscoveredPluginsInfo.find(p => p.id === pluginId);
+    if (!pluginInfo) return res.status(404).json({ message: '插件未找到' });
+    try {
+        const configPath = path.join(PLUGINS_DIR, pluginInfo.folder_name, 'config.json');
+        const configContent = await fs.readFile(configPath, 'utf-8');
+        res.json(JSON.parse(configContent));
+    } catch (e) { res.status(500).json({ message: '读取插件配置失败', error: e.message }); }
+});
+
+app.post('/api/plugin-config/:plugin_id', async (req, res) => {
+    const pluginId = req.params.plugin_id;
+    const pluginInfo = allDiscoveredPluginsInfo.find(p => p.id === pluginId);
+    if (!pluginInfo) return res.status(404).json({ message: '插件未找到' });
+    try {
+        const newPluginConfig = req.body;
+        if (!newPluginConfig.plugin_id || newPluginConfig.plugin_id !== pluginId) {
+            return res.status(400).json({ message: '插件ID不匹配或丢失。' });
         }
-        res.json(allPluginsWithStatus || []); 
-    } catch (error) {
-        console.error(`[NodeJS] 获取插件规则失败 (/api/plugins):`, error);
-        res.status(500).json({ message: '获取插件规则失败', error: error.message });
+        const configPath = path.join(PLUGINS_DIR, pluginInfo.folder_name, 'config.json');
+        await fs.writeFile(configPath, JSON.stringify(newPluginConfig, null, 2), 'utf-8');
+        await discoverAndLoadPlugins(); 
+        res.json({ message: `插件 ${pluginInfo.name} 配置已更新！` });
+    } catch (e) { res.status(500).json({ message: '保存插件配置失败', error: e.message }); }
+});
+
+
+// Serve frontend
+app.get('/plugin-manager', (req, res) => res.sendFile(path.join(__dirname, 'plugin_manager.html')));
+app.get('/plugin_manager.js', (req, res) => res.sendFile(path.join(__dirname, 'plugin_manager.js')));
+
+
+// Catch-all for proxying
+app.all('*', (req, res, next) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/plugin-manager')) {
+        return next();
     }
-});
-
-app.post('/api/plugins', async (req, res) => {
-    try {
-        const newPluginsConfiguration = req.body;
-        if (!Array.isArray(newPluginsConfiguration)) {
-            return res.status(400).json({ message: '请求体必须是一个JSON数组' });
-        }
-        const processedConfig = newPluginsConfiguration.map(p => ({
-            ...p,
-            enabled: p.enabled === undefined ? true : p.enabled
-        }));
-
-        await fs.writeFile(PLUGINS_RULE_FILE, JSON.stringify(processedConfig, null, 2), 'utf-8');
-        console.log(`[NodeJS] 插件规则已更新到 ${path.basename(PLUGINS_RULE_FILE)}`);
-        await loadPluginRules(); 
-        res.json({ message: '插件配置已成功更新并重新加载！' });
-    } catch (error) {
-        console.error(`[NodeJS] 更新插件规则失败 (/api/plugins):`, error);
-        res.status(500).json({ message: '更新插件规则失败', error: error.message });
-    }
-});
-
-app.get('/api/global-config', async (req, res) => {
-    try {
-        res.json(config || {}); 
-    } catch (error) { 
-        console.error(`[NodeJS] 获取全局配置失败 (/api/global-config):`, error);
-        res.status(500).json({ message: '获取全局配置失败', error: error.message });
-    }
-});
-
-app.post('/api/global-config', async (req, res) => {
-    try {
-        const newGlobalConfig = req.body;
-        if (typeof newGlobalConfig !== 'object' || newGlobalConfig === null) {
-            return res.status(400).json({ message: '请求体必须是一个有效的JSON对象' });
-        }
-        await fs.writeFile(CONFIG_FILE_PATH, JSON.stringify(newGlobalConfig, null, 2), 'utf-8');
-        console.log(`[NodeJS] 全局配置已更新到 ${path.basename(CONFIG_FILE_PATH)}.`);
-        
-        loadFullConfig(); 
-        reassignConfigVariables(); 
-        await loadPluginRules(); 
-
-        res.json({ message: '全局配置已成功更新！部分更改（如端口号）可能需要重启服务才能完全生效。' });
-    } catch (error) {
-        console.error(`[NodeJS] 更新全局配置失败 (/api/global-config):`, error);
-        res.status(500).json({ message: '更新全局配置失败', error: error.message });
-    }
-});
-
-
-app.get('/plugin-manager', (req, res) => {
-    res.sendFile(path.join(__dirname, 'plugin_manager.html'));
-});
-app.get('/plugin_manager.js', (req, res) => {
-    res.sendFile(path.join(__dirname, 'plugin_manager.js'));
-});
-
-
-app.all('*', async (req, res, next) => {
-    if (req.path.startsWith('/api/') || req.path === '/plugin-manager' || req.path === '/plugin_manager.js') {
-        return next(); 
-    }
-
     const initialRequestData = {
-        method: req.method,
-        url: req.originalUrl, 
-        headers: { ...req.headers }, 
-        body: req.body, 
-        sourceIp: req.ip || req.socket?.remoteAddress
+        method: req.method, url: req.originalUrl, headers: { ...req.headers },
+        body: req.body, sourceIp: req.ip || req.socket?.remoteAddress
     };
-    
-    delete initialRequestData.headers['content-length'];
-    delete initialRequestData.headers['host']; 
+    delete initialRequestData.headers['host'];
+    delete initialRequestData.headers['content-length']; 
 
-    await handleRequestAndPlugins(req, res, initialRequestData, 0, 0);
+    handleRequestAndPlugins(req, res, initialRequestData);
 });
 
+// Error handler
 app.use((err, req, res, next) => {
-    console.error("[NodeJS] 未捕获的服务器错误:", err.stack || err.message || err);
-    if (!res.headersSent) {
-        res.status(500).json({ error: '服务器内部错误', details: err.message });
-    } else {
-        next(err); 
-    }
+    console.error("[NodeJS] 未捕获的服务器错误:", err.stack || err.message);
+    if (!res.headersSent) res.status(500).json({ error: '服务器内部错误', details: err.message });
 });
 
+
+// --- Start Server ---
 (async () => {
-    await initializeConformChatFile(); 
-    await loadPluginRules();
-    app.listen(PROXY_SERVER_PORT, '0.0.0.0', () => { 
+    loadRootConfig();
+    await initializeConformChatFile();
+    await discoverAndLoadPlugins();
+    
+    const port = rootConfig.proxy_server_port || 3001;
+    app.listen(port, '0.0.0.0', () => {
         console.log("======================================================================");
-        console.log(`[NodeJS] Xice_Aitoolbox 监听服务正在运行于端口: ${PROXY_SERVER_PORT}`);
-        console.log(`[NodeJS] 所有发往此端口的请求将被处理(可能调用插件)并转发到: ${TARGET_PROXY_URL}`);
-        console.log(`[NodeJS] 插件管理界面请访问: http://localhost:${PROXY_SERVER_PORT}/plugin-manager`);
-        console.log(`[NodeJS] conformchat 文件路径: ${CONFORM_CHAT_FILE}`);
-        if (LOG_INTERCEPTED_DATA) {
-            console.log(`[NodeJS] 最新交互的请求将记录到: ${path.basename(SEND_LOG_FILE)}`);
-            console.log(`[NodeJS] 最新交互的响应将记录到: ${path.basename(RECEIVED_LOG_FILE)}`);
-        } else {
-            console.log(`[NodeJS] 请求/响应日志记录已禁用`);
-        }
-        if (allPluginsWithStatus.length > 0) { 
-            console.log(`[NodeJS] 共定义 ${allPluginsWithStatus.length} 个插件, 其中 ${activePlugins.length} 个已启用。`);
-             activePlugins.forEach(p => console.log(`  - (启用) ID: ${p.plugin_id}, Name: ${p.plugin_name_cn}`));
-            if (INJECT_PLUGIN_RULES_ON_FIRST_REQUEST && activePlugins.length > 0) {
-                 console.log(`[NodeJS] 已启用插件的规则描述将在适当时机注入。`);
-            } else if (activePlugins.length === 0) {
-                console.log(`[NodeJS] 所有已定义的插件均被禁用，或没有插件被定义。`);
-            }
-        } else {
-            console.log(`[NodeJS] 未加载任何插件或插件规则文件不存在/错误。`);
-        }
-        console.log(`[NodeJS] 当前 ConformChat 显示模式: ${CONFORM_CHAT_DISPLAY_MODE}`);
+        console.log(`[NodeJS] Xice_Aitoolbox 监听服务正在运行于端口: ${port}`);
+        console.log(`[NodeJS] 转发到: ${rootConfig.target_proxy_url}`);
+        console.log(`[NodeJS] 插件管理界面: http://localhost:${port}/plugin-manager`);
+        console.log(`[NodeJS] 当前 ConformChat 显示模式: ${rootConfig.conform_chat_display_mode}`);
         console.log("======================================================================");
     }).on('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-            console.error(`[NodeJS] 致命错误：端口 ${PROXY_SERVER_PORT} 已被占用。请检查 config.json 或关闭占用该端口的程序。`);
-        } else {
-            console.error("[NodeJS] 启动服务器失败:", err);
-        }
+        if (err.code === 'EADDRINUSE') console.error(`[NodeJS] 致命错误：端口 ${port} 已被占用。`);
+        else console.error("[NodeJS] 启动服务器失败:", err);
         process.exit(1);
     });
 })();
 
 process.on('SIGINT', () => {
-    console.log('[NodeJS] 收到 SIGINT，正在关闭服务器...');
-    process.exit(0); 
+    console.log('[NodeJS] 收到 SIGINT，正在关闭...');
+    process.exit(0);
 });

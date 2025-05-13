@@ -7,10 +7,9 @@
   "max_log_response_size_kb_in_received_file": 1024,
   "max_plugin_recursion_depth": 20,
   "inject_plugin_rules_on_first_request": true,
-  "code_sandbox_python_timeout": 15,
-  "program_runner_timeout": 30,
   "max_continuation_depth": 20,
   "conform_chat_display_mode": "detailed_plugin_responses",
+  "auto_open_browser_config": true,
   "project_generator_allowed_base_paths_map": {
     "my_ai_projects": "./AiGeneratedProjects",
     "default_projects": "./generated_projects_default"
@@ -18,6 +17,7 @@
   "file_operations_allowed_base_paths": [
     "./AiGeneratedProjects",
     "./generated_projects_default",
-    "./AiManagedFiles"
+    "./AiManagedFiles",
+    "./Plugin" 
   ]
 }

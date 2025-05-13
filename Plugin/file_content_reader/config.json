@@ -1,0 +1,26 @@
+{
+    "plugin_id": "read_file_content",
+    "plugin_name_cn": "读取文件内容",
+    "version": "1.0.0",
+    "description": "当你需要读取指定系统路径下的文件内容时，请回复 '[读取文件]完整文件路径[/读取文件]'。我会返回该文件的文本内容。",
+    "author": "Xice",
+    "enabled": true,
+    "is_python_script": true,
+    "executable_name": "file_content_reader_plugin.py",
+    "placeholder_start": "[读取文件]",
+    "placeholder_end": "[/读取文件]",
+    "accepts_parameters": true,
+    "is_internal_signal": false,
+    "parameters": [
+        {
+            "name": "file_path",
+            "type": "string",
+            "description": "要读取内容的文件路径。",
+            "required": true
+        }
+    ],
+    "plugin_specific_config": {
+        "max_file_size_mb": 5,
+        "max_output_chars": 15000
+    }
+}

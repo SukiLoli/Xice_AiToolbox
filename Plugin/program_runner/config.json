@@ -1,0 +1,26 @@
+{
+    "plugin_id": "run_program_command_unsafe",
+    "plugin_name_cn": "运行程序或命令 (任意CWD/命令 - 极度危险!)",
+    "version": "1.1.0",
+    "description": "警告：此插件允许AI在指定的任意工作目录下执行任意命令或程序。这具有极高的安全风险，请仅在完全隔离和受控的环境中使用！当你需要执行一个程序或命令时，请回复 '[运行程序_危险]JSON参数[/运行程序_危险]'。JSON参数是一个对象，包含 'cwd' (可选, 默认为插件目录) 和 'command' (字符串或列表)。",
+    "author": "Xice",
+    "enabled": true,
+    "is_python_script": true,
+    "executable_name": "program_runner_plugin.py",
+    "placeholder_start": "[运行程序_危险]",
+    "placeholder_end": "[/运行程序_危险]",
+    "accepts_parameters": true,
+    "is_internal_signal": false,
+    "parameters": [
+        {
+            "name": "params_json_str",
+            "type": "json_string",
+            "description": "包含 'cwd' (可选) 和 'command' 的JSON字符串。",
+            "required": true
+        }
+    ],
+    "plugin_specific_config": {
+        "program_execution_timeout_seconds": 30,
+        "allow_arbitrary_paths_and_commands": true
+    }
+}
