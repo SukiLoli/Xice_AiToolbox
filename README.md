@@ -28,7 +28,7 @@ Xice_Aitoolbox 旨在构建一个灵活、可扩展的本地中间层框架，�
 
 ## 系统架构概览
 
-```mermaid
+```
 sequenceDiagram
     participant UserApp as 用户AI应用
     participant XiceFramework_NodeJS as Xice_Aitoolbox (Node.js Proxy)
