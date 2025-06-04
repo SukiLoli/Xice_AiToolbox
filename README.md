@@ -89,7 +89,7 @@
 -   **概览**: Xice_Aitoolbox 作为中间层，拦截用户AI应用与本地AI服务之间的通信。它解析AI的响应，根据特定指令调用相应插件执行任务，并将插件结果反馈给AI，实现AI能力的扩展。
 
 -   **Mermaid 流程图**:
-    ```mermaid
+    ```
     sequenceDiagram
         participant UserApp as 用户AI应用
         participant XiceFramework_NodeJS as Xice_Aitoolbox (Node.js Proxy)
